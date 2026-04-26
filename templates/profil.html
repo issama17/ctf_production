@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block titre %}CTF_LAB — Mon Profil{% endblock %}
+{% block styles %}
+.score-big{font-family:var(--mono);font-size:3rem;color:var(--yellow);line-height:1;}
+.stat-box{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:1rem 1.5rem;text-align:center;}
+.stat-val{font-family:var(--mono);font-size:1.8rem;}
+.hist-row{display:flex;justify-content:space-between;align-items:center;padding:.6rem 0;border-bottom:1px solid var(--border);font-size:.88rem;}
+.hist-row:last-child{border-bottom:none;}
+.badge-ok{font-family:var(--mono);font-size:.7rem;padding:.25em .6em;background:rgba(0,255,136,.1);border:1px solid var(--green);color:var(--green);border-radius:3px;}
+.badge-ko{font-family:var(--mono);font-size:.7rem;padding:.25em .6em;background:rgba(255,60,95,.1);border:1px solid var(--red);color:var(--red);border-radius:3px;}
+{% endblock %}
+
+{% block contenu %}
+
+<!-- Header profil -->
+<div class="d-flex align-items-center gap-4 mb-5">
+  <div style="width:72px;height:72px;background:rgba(0,255,136,.08);border:2px solid var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2rem;color:var(--green);">
+    <i class="bi bi-person-fill"></i>
+  </div>
+  <div>
+    <p class="font-mono text-dim mb-0" style="font-size:.8rem;">// PROFIL UTILISATEUR</p>
+    <h1 class="font-mono text-green glow mb-0" style="font-size:2rem;">
+      {{ current_user.nom_utilisateur }}
+    </h1>
+    <small class="text-dim font-mono">{{ current_user.email }}</small>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="row g-3 mb-5">
+  <div class="col-md-4">
+    <div class="stat-box">
+      <div class="score-big mb-1">{{ current_user.score }}</div>
+      <div class="text-dim font-mono" style="font-size:.8rem;">POINTS TOTAUX</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-box">
+      <div class="stat-val text-green mb-1">
+        {{ historique | selectattr('succes', 'equalto', 1) | list | length }}
+      </div>
+      <div class="text-dim font-mono" style="font-size:.8rem;">DÉFIS RÉSOLUS</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-box">
+      <div class="stat-val text-cyan mb-1">
+        {{ current_user.date_inscription[:10] if current_user.date_inscription else '—' }}
+      </div>
+      <div class="text-dim font-mono" style="font-size:.8rem;">MEMBRE DEPUIS</div>
+    </div>
+  </div>
+</div>
+
+<!-- Historique des soumissions -->
+<div class="d-flex align-items-center gap-3 mb-3">
+  <span class="font-mono text-dim" style="font-size:.8rem;">// HISTORIQUE DES SOUMISSIONS</span>
+  <div class="flex-grow-1" style="height:1px;background:var(--border);"></div>
+</div>
+
+<div class="ctf-card p-4">
+  {% if historique %}
+    {% for h in historique %}
+    <div class="hist-row">
+      <div>
+        <span class="font-mono text-cyan">{{ h['defi_id'] }}</span>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <span class="text-dim" style="font-size:.75rem;">
+          {{ h['date_soumis'][:16] if h['date_soumis'] else '' }}
+        </span>
+        {% if h['succes'] %}
+          <span class="badge-ok"><i class="bi bi-check me-1"></i>FLAG VALIDÉ</span>
+        {% else %}
+          <span class="badge-ko"><i class="bi bi-x me-1"></i>ÉCHEC</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="text-center py-4">
+      <i class="bi bi-inbox text-dim" style="font-size:2rem;"></i>
+      <p class="text-dim font-mono mt-2 mb-0" style="font-size:.85rem;">
+        // Aucune soumission pour le moment
+      </p>
+    </div>
+  {% endif %}
+</div>
+
+<div class="text-center mt-4">
+  <a href="/" class="btn-ctf text-decoration-none px-4 py-2 d-inline-block">
+    <i class="bi bi-arrow-left me-2"></i>Retour aux défis
+  </a>
+</div>
+
+{% endblock %}

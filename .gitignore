@@ -1,0 +1,28 @@
+# Environnement virtuel
+venv/
+.venv/
+
+# Base de données
+*.db
+ctf_platform.db
+
+# Cache Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Fichiers sensibles
+.env
+*.env
+
+# Fichiers système Windows
+Thumbs.db
+desktop.ini
+
+# Fichiers système macOS
+.DS_Store
+
+# Scripts de préparation (pas nécessaires en prod)
+setup.py
+inject.py
