@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+
+{% block titre %}CTF_LAB — {{ defi.titre }}{% endblock %}
+
+{% block styles %}
+.breadcrumb-ctf { font-family:var(--mono); font-size:.8rem; color:var(--text-dim); }
+.breadcrumb-ctf a { color:var(--cyan); text-decoration:none; }
+.breadcrumb-ctf a:hover { text-decoration:underline; }
+
+.defi-header { border-left:3px solid var(--cyan); padding-left:1.25rem; }
+.defi-title { font-family:var(--mono); font-size:clamp(1.5rem,3vw,2.2rem); color:var(--cyan); }
+
+.desc-box {
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:6px; padding:1.25rem 1.5rem; line-height:1.7;
+}
+
+/* Cipher block */
+.cipher-block {
+  background:#000d1a;
+  border:1px solid var(--cyan);
+  border-radius:6px;
+  padding:1.5rem 2rem;
+  position:relative;
+  overflow:hidden;
+}
+.cipher-block::before {
+  content:'// TEXTE CHIFFRÉ';
+  position:absolute; top:.6rem; left:1rem;
+  font-family:var(--mono); font-size:.7rem; color:var(--text-dim);
+  letter-spacing:2px;
+}
+.cipher-text {
+  font-family:var(--mono);
+  font-size:1.15rem;
+  color:var(--cyan);
+  letter-spacing:.12em;
+  word-break:break-all;
+  margin-top:.5rem;
+  text-shadow: 0 0 10px rgba(0,207,255,.4);
+}
+
+/* Category tag */
+.cat-tag {
+  font-family:var(--mono); font-size:.75rem;
+  background:rgba(0,207,255,.08); border:1px solid rgba(0,207,255,.25);
+  color:var(--cyan); padding:.3em .8em; border-radius:3px;
+  display:inline-block;
+}
+
+/* Flag form */
+.flag-input {
+  background:var(--bg2); border:1px solid var(--border);
+  border-right:none; border-radius:4px 0 0 4px;
+  color:var(--text); font-family:var(--mono); font-size:.95rem;
+  padding:.6rem 1rem; transition:border-color .2s;
+}
+.flag-input:focus {
+  outline:none; border-color:var(--cyan);
+  background:var(--card); color:var(--text);
+  box-shadow:0 0 0 3px rgba(0,207,255,.08);
+}
+.flag-input::placeholder { color:var(--text-dim); }
+.btn-submit {
+  border-radius:0 4px 4px 0; padding:.6rem 1.4rem;
+  font-family:var(--mono); font-size:.9rem;
+  background:var(--cyan); color:#000; border:1px solid var(--cyan);
+  font-weight:700; cursor:pointer; transition:all .2s;
+}
+.btn-submit:hover { background:#00a8d4; box-shadow:0 0 16px rgba(0,207,255,.4); }
+.btn-submit:disabled { opacity:.4; cursor:not-allowed; }
+
+#resultat {
+  border-radius:6px; padding:.9rem 1.25rem;
+  font-family:var(--mono); font-size:.9rem; display:none;
+}
+#resultat.succes { background:rgba(0,255,136,.08); border:1px solid rgba(0,255,136,.4); color:var(--green); }
+#resultat.echec  { background:rgba(255,60,95,.07);  border:1px solid rgba(255,60,95,.35);  color:var(--red); }
+#resultat.bloque { background:rgba(255,209,102,.07);border:1px solid rgba(255,209,102,.35);color:var(--yellow); }
+
+#indice-box {
+  background:rgba(255,209,102,.05); border:1px solid rgba(255,209,102,.25);
+  border-radius:6px; padding:.9rem 1.25rem;
+  font-size:.9rem; color:var(--yellow); display:none;
+}
+
+/* Victory */
+#victoire-banner {
+  display:none; position:fixed; inset:0;
+  background:rgba(5,8,16,.92); z-index:10000;
+  flex-direction:column; align-items:center; justify-content:center; text-align:center;
+}
+.victory-icon { font-size:5rem; color:var(--cyan); animation:glowPulse 1s infinite; }
+.victory-title { font-family:var(--mono); font-size:2.5rem; color:var(--cyan); margin-top:1rem; }
+.victory-points { font-family:var(--mono); font-size:1.2rem; color:var(--yellow); margin-top:.5rem; }
+
+/* Attempts bar */
+.tentatives-bar { height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
+.tentatives-fill { height:100%; border-radius:2px; transition:width .4s ease,background .4s; }
+
+.info-row {
+  display:flex; justify-content:space-between;
+  border-bottom:1px solid var(--border); padding:.5rem 0; font-size:.88rem;
+}
+.info-row:last-child { border-bottom:none; }
+.info-label { color:var(--text-dim); }
+.info-value { font-family:var(--mono); }
+
+/* Scanline animation on cipher block */
+@keyframes scan {
+  0%   { top:-10%; }
+  100% { top:110%; }
+}
+.cipher-block .scanline {
+  position:absolute; left:0; width:100%; height:2px;
+  background:linear-gradient(transparent,rgba(0,207,255,.12),transparent);
+  animation:scan 3s linear infinite; pointer-events:none;
+}
+{% endblock %}
+
+{% block contenu %}
+
+<!-- BREADCRUMB -->
+<div class="breadcrumb-ctf mb-4">
+  <a href="/"><i class="bi bi-house me-1"></i>Accueil</a>
+  <span class="mx-2">/</span>
+  <span class="text-cyan">Cryptographie</span>
+  <span class="mx-2">/</span>
+  <span>{{ defi.titre }}</span>
+</div>
+
+<div class="row g-4">
+
+  <!-- ══ COLONNE PRINCIPALE ══ -->
+  <div class="col-lg-8">
+
+    <!-- Titre -->
+    <div class="defi-header mb-4">
+      <div class="d-flex align-items-center gap-3 flex-wrap mb-2">
+        <span class="badge-diff diff-{{ defi.difficulte|lower }}">{{ defi.difficulte }}</span>
+        <span class="cat-tag"><i class="bi bi-lock me-1"></i>{{ defi.categorie_crypto }}</span>
+      </div>
+      <h1 class="defi-title glow">{{ defi.titre }}</h1>
+    </div>
+
+    <!-- Description -->
+    <div class="desc-box mb-4">
+      <p class="mb-0">{{ defi.description|safe }}</p>
+    </div>
+
+    <!-- Texte chiffré -->
+    <div class="cipher-block mb-4">
+      <div class="scanline"></div>
+      <div class="cipher-text" id="cipher-display">{{ defi.texte_chiffre }}</div>
+    </div>
+
+    <!-- Formulaire flag -->
+    <div class="ctf-card p-4 mb-3">
+      <h6 class="font-mono text-cyan mb-3">
+        <i class="bi bi-flag-fill me-2"></i>Soumettre le flag
+      </h6>
+
+      <div class="d-flex mb-3">
+        <input type="text" id="flag-input" class="flag-input flex-grow-1"
+               placeholder="CTF{v0tre_fl4g_ici}"
+               autocomplete="off" spellcheck="false"
+               {% if defi.bloque %}disabled{% endif %} />
+        <button id="btn-submit" class="btn-submit"
+                {% if defi.bloque %}disabled{% endif %}>
+          <i class="bi bi-send me-1"></i>Valider
+        </button>
+      </div>
+
+      <!-- Barre tentatives -->
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <span class="text-dim" style="font-size:.75rem;font-family:var(--mono);">
+          Tentatives : <span id="compteur">{{ defi.tentatives }}</span>/10
+        </span>
+        <div class="tentatives-bar flex-grow-1">
+          <div class="tentatives-fill" id="barre-tentatives"
+               style="width:{{ (defi.tentatives/10*100)|int }}%;
+               background:{% if defi.tentatives<5 %}var(--green){% elif defi.tentatives<8 %}var(--yellow){% else %}var(--red){% endif %}">
+          </div>
+        </div>
+      </div>
+
+      <div id="resultat"></div>
+      <div id="indice-box" class="mt-3">
+        <i class="bi bi-lightbulb me-2"></i>
+        <span id="indice-texte"></span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ SIDEBAR ══ -->
+  <div class="col-lg-4">
+
+    <!-- Infos -->
+    <div class="ctf-card p-4 mb-4">
+      <h6 class="font-mono text-cyan mb-3">
+        <i class="bi bi-info-circle me-2"></i>Informations
+      </h6>
+      <div class="info-row">
+        <span class="info-label">Points</span>
+        <span class="info-value text-yellow">{{ defi.points }} pts</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Difficulté</span>
+        <span class="info-value badge-diff diff-{{ defi.difficulte|lower }}">{{ defi.difficulte }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Catégorie</span>
+        <span class="info-value text-cyan">{{ defi.categorie_crypto }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Statut</span>
+        <span class="info-value" id="statut-badge">
+          {% if deja_resolu %}
+            <span class="text-green"><i class="bi bi-check-circle me-1"></i>Résolu</span>
+          {% else %}
+            <span class="text-dim">En cours…</span>
+          {% endif %}
+        </span>
+      </div>
+    </div>
+
+    <!-- Ressources -->
+    <div class="ctf-card p-4">
+      <h6 class="font-mono text-cyan mb-3">
+        <i class="bi bi-book me-2"></i>Ressources utiles
+      </h6>
+      <ul class="list-unstyled mb-0" style="font-size:.88rem;">
+        <li class="mb-2">
+          <i class="bi bi-chevron-right text-cyan me-2"></i>
+          <a href="https://www.dcode.fr" class="text-cyan text-decoration-none" target="_blank">
+            dCode — Outils de déchiffrement
+          </a>
+        </li>
+        <li class="mb-2">
+          <i class="bi bi-chevron-right text-cyan me-2"></i>
+          <a href="https://gchq.github.io/CyberChef/" class="text-cyan text-decoration-none" target="_blank">
+            CyberChef — Transformations crypto
+          </a>
+        </li>
+        <li class="mb-2">
+          <i class="bi bi-chevron-right text-cyan me-2"></i>
+          <a href="https://fr.wikipedia.org/wiki/Chiffre_de_C%C3%A9sar" class="text-cyan text-decoration-none" target="_blank">
+            Chiffre de César — Wikipedia
+          </a>
+        </li>
+        <li class="mb-2">
+          <i class="bi bi-chevron-right text-cyan me-2"></i>
+          <a href="https://fr.wikipedia.org/wiki/RSA_(cryptographie)" class="text-cyan text-decoration-none" target="_blank">
+            RSA — Wikipedia
+          </a>
+        </li>
+        <li>
+          <i class="bi bi-chevron-right text-cyan me-2"></i>
+          <span class="text-dim">Format flag : <code class="text-green">CTF{...}</code></span>
+        </li>
+      </ul>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- BANNIÈRE VICTOIRE -->
+<div id="victoire-banner">
+  <div class="victory-icon">🔓</div>
+  <div class="victory-title">CHIFFREMENT BRISÉ !</div>
+  <div class="victory-points" id="victory-pts"></div>
+  <p class="text-dim mt-3 font-mono" style="font-size:.85rem;">// Appuyez sur une touche pour continuer</p>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const DEFI_ID    = "{{ id }}";
+const inputEl    = document.getElementById("flag-input");
+const btnSubmit  = document.getElementById("btn-submit");
+const resultatEl = document.getElementById("resultat");
+const indiceBox  = document.getElementById("indice-box");
+const indiceTxt  = document.getElementById("indice-texte");
+const compteur   = document.getElementById("compteur");
+const barre      = document.getElementById("barre-tentatives");
+const victoire   = document.getElementById("victoire-banner");
+const vicPts     = document.getElementById("victory-pts");
+const statutBadge= document.getElementById("statut-badge");
+
+async function soumettre() {
+  const flag = inputEl.value.trim();
+  if (!flag) return;
+  btnSubmit.disabled = true;
+  btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>…';
+  try {
+    const res  = await fetch("/api/soumettre", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({id: DEFI_ID, flag})
+    });
+    const data = await res.json();
+    afficherResultat(data);
+    mettreAJourBarre(data.tentatives ?? parseInt(compteur.textContent));
+    if (data.succes) {
+      vicPts.textContent = `+${data.points} points remportés !`;
+      setTimeout(() => {
+        victoire.style.display = "flex";
+        statutBadge.innerHTML = '<span class="text-green"><i class="bi bi-check-circle me-1"></i>Résolu</span>';
+      }, 600);
+    }
+  } catch(e) {
+    afficherErreur("Erreur réseau. Réessayez.");
+  } finally {
+    btnSubmit.disabled = false;
+    btnSubmit.innerHTML = '<i class="bi bi-send me-1"></i>Valider';
+  }
+}
+
+function afficherResultat(data) {
+  resultatEl.style.display = "block";
+  indiceBox.style.display  = "none";
+  if (data.succes) {
+    resultatEl.className = "succes";
+    resultatEl.innerHTML = `<i class="bi bi-check-circle-fill me-2"></i>${data.message}`;
+    inputEl.disabled = true; btnSubmit.disabled = true;
+  } else if (data.code === 429) {
+    resultatEl.className = "bloque";
+    resultatEl.innerHTML = `<i class="bi bi-lock-fill me-2"></i>${data.message}`;
+    inputEl.disabled = true; btnSubmit.disabled = true;
+  } else {
+    resultatEl.className = "echec";
+    resultatEl.innerHTML = `<i class="bi bi-x-circle-fill me-2"></i>${data.message}`;
+    if (data.indice) { indiceBox.style.display="block"; indiceTxt.textContent=data.indice; }
+  }
+}
+
+function afficherErreur(msg) {
+  resultatEl.style.display = "block";
+  resultatEl.className = "echec";
+  resultatEl.innerHTML = `<i class="bi bi-exclamation-triangle me-2"></i>${msg}`;
+}
+
+function mettreAJourBarre(n) {
+  if (n === undefined) return;
+  compteur.textContent = n;
+  const pct = Math.min((n/10)*100, 100);
+  barre.style.width = pct + "%";
+  barre.style.background = n<5 ? "var(--green)" : n<8 ? "var(--yellow)" : "var(--red)";
+}
+
+document.addEventListener("keydown", () => { if (victoire.style.display==="flex") victoire.style.display="none"; });
+victoire.addEventListener("click", () => victoire.style.display="none");
+inputEl.addEventListener("keydown", e => { if (e.key==="Enter") soumettre(); });
+btnSubmit.addEventListener("click", soumettre);
+</script>
+{% endblock %}
