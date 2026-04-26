@@ -236,7 +236,7 @@ class GestionnaireAuth:
         self._logger         = logging.getLogger(self.__class__.__name__)
 
     def inscrire(self, nom: str, email: str, mdp: str) -> dict:
-        """Crée un compte et envoie l'email de confirmation."""
+        """Crée un compte et le confirme automatiquement sans email."""
 
         # Validations basiques
         if len(nom) < 3:
@@ -246,26 +246,17 @@ class GestionnaireAuth:
         if "@" not in email:
             return {"succes": False, "message": "Email invalide."}
 
-        token  = secrets.token_urlsafe(32)
-        expiry = (datetime.utcnow() + timedelta(hours=24)).isoformat()
         mdp_hash = Utilisateur.hasher_mdp(mdp)
-
-        ok = self.__db.creer_utilisateur(nom, email, mdp_hash, token, expiry)
+        ok = self.__db.creer_utilisateur(nom, email, mdp_hash, "confirmed", "confirmed")
         if not ok:
             return {"succes": False, "message": "Email ou nom d'utilisateur déjà utilisé."}
 
-        lien = f"{self.__url_base}/confirmer/{token}"
-        envoye = self.__service_email.envoyer_confirmation(email, nom, lien)
+        # Confirmation automatique
+        row = self.__db.obtenir_par_email(email)
+        if row:
+            self.__db.confirmer_utilisateur(row["id"])
 
-        if envoye:
-            return {"succes": True,
-                    "message": "Inscription réussie ! Vérifiez votre email pour confirmer votre compte."}
-        else:
-            # Email non envoyé (mauvaise config SMTP) — on donne le lien en dev
-            self._logger.warning(f"[DEV] Lien de confirmation : {lien}")
-            return {"succes": True,
-                    "message": "Compte créé. (Dev) Vérifiez les logs pour le lien de confirmation.",
-                    "lien_dev": lien}
+        return {"succes": True, "message": "Inscription réussie ! Vous pouvez vous connecter."}
 
     def confirmer_email(self, token: str) -> dict:
         row = self.__db.obtenir_par_token(token)
