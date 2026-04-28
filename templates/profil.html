@@ -8,22 +8,36 @@
 .hist-row:last-child{border-bottom:none;}
 .badge-ok{font-family:var(--mono);font-size:.7rem;padding:.25em .6em;background:rgba(0,255,136,.1);border:1px solid var(--green);color:var(--green);border-radius:3px;}
 .badge-ko{font-family:var(--mono);font-size:.7rem;padding:.25em .6em;background:rgba(255,60,95,.1);border:1px solid var(--red);color:var(--red);border-radius:3px;}
+.avatar-circle{width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid var(--green);box-shadow:0 0 16px rgba(0,255,136,.2);}
+.avatar-fallback{width:72px;height:72px;background:rgba(0,255,136,.08);border:2px solid var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2rem;color:var(--green);}
 {% endblock %}
 
 {% block contenu %}
 
 <!-- Header profil -->
 <div class="d-flex align-items-center gap-4 mb-5">
-  <div style="width:72px;height:72px;background:rgba(0,255,136,.08);border:2px solid var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2rem;color:var(--green);">
-    <i class="bi bi-person-fill"></i>
-  </div>
-  <div>
+  <!-- Avatar dynamique : photo Cloudinary si disponible, sinon icône -->
+  {% if current_user.profile_pic %}
+    <img src="{{ current_user.profile_pic }}" alt="Avatar" class="avatar-circle">
+  {% else %}
+    <div class="avatar-fallback">
+      <i class="bi bi-person-fill"></i>
+    </div>
+  {% endif %}
+
+  <div class="flex-grow-1">
     <p class="font-mono text-dim mb-0" style="font-size:.8rem;">// PROFIL UTILISATEUR</p>
     <h1 class="font-mono text-green glow mb-0" style="font-size:2rem;">
       {{ current_user.nom_utilisateur }}
     </h1>
     <small class="text-dim font-mono">{{ current_user.email }}</small>
   </div>
+
+  <!-- Bouton paramètres -->
+  <a href="{{ url_for('parametres_profil') }}" class="btn-ctf text-decoration-none px-3 py-2"
+     style="font-size:.8rem;" title="Changer la photo de profil">
+    <i class="bi bi-gear me-1"></i>Paramètres
+  </a>
 </div>
 
 <!-- Stats -->
@@ -37,7 +51,7 @@
   <div class="col-md-4">
     <div class="stat-box">
       <div class="stat-val text-green mb-1">
-        {{ historique | selectattr('succes', 'equalto', 1) | list | length }}
+        {{ historique | selectattr('succes', 'equalto', true) | list | length }}
       </div>
       <div class="text-dim font-mono" style="font-size:.8rem;">DÉFIS RÉSOLUS</div>
     </div>

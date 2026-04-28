@@ -1,111 +1,152 @@
 """
-Plateforme CTF — v3 avec Cryptographie
+Plateforme CTF — v4 avec PostgreSQL + Cloudinary
 Architecture : 100% Programmation Orientée Objet (POO)
-Ajout : DefiCrypto + 3 défis cryptographiques
+Nouvelles fonctionnalités : Photo de profil (Cloudinary) + PostgreSQL persistant
 """
 
 from flask import Flask, render_template, request, jsonify, send_from_directory, \
                   redirect, url_for, flash, session
 from flask_login import LoginManager, UserMixin, login_user, logout_user, \
                         login_required, current_user
+from flask_sqlalchemy import SQLAlchemy
 from abc import ABC, abstractmethod
-import hashlib, os, logging, sqlite3, secrets, smtplib, base64
+import hashlib, os, logging, secrets, smtplib, base64
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
-from functools import wraps
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 
 
 # ══════════════════════════════════════════════════════
-#  COUCHE DONNÉES — BaseDeDonnees
+#  CONFIGURATION CLOUDINARY
+# ══════════════════════════════════════════════════════
+
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME", ""),
+    api_key=os.getenv("CLOUDINARY_API_KEY", ""),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET", ""),
+    secure=True,
+)
+
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+MAX_FILE_SIZE_MB = 5
+
+
+def allowed_file(filename: str) -> bool:
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+# ══════════════════════════════════════════════════════
+#  INITIALISATION SQLALCHEMY (partagée)
+# ══════════════════════════════════════════════════════
+
+db_sql = SQLAlchemy()
+
+
+# ══════════════════════════════════════════════════════
+#  MODÈLES SQLALCHEMY
+# ══════════════════════════════════════════════════════
+
+class UtilisateurModel(db_sql.Model):
+    """Modèle SQLAlchemy pour la table utilisateurs (PostgreSQL)."""
+    __tablename__ = "utilisateurs"
+
+    id               = db_sql.Column(db_sql.Integer, primary_key=True, autoincrement=True)
+    nom_utilisateur  = db_sql.Column(db_sql.String(64), unique=True, nullable=False)
+    email            = db_sql.Column(db_sql.String(255), unique=True, nullable=False)
+    mot_de_passe     = db_sql.Column(db_sql.String(256), nullable=False)
+    score            = db_sql.Column(db_sql.Integer, default=0)
+    confirme         = db_sql.Column(db_sql.Boolean, default=False)
+    token_confirm    = db_sql.Column(db_sql.String(256), nullable=True)
+    token_expiry     = db_sql.Column(db_sql.String(64), nullable=True)
+    date_inscription = db_sql.Column(db_sql.String(64), default=lambda: datetime.utcnow().isoformat())
+    # NEW: URL persistante de la photo de profil (stockée sur Cloudinary)
+    profile_pic      = db_sql.Column(db_sql.String(512), nullable=True, default=None)
+
+    soumissions = db_sql.relationship("SoumissionModel", backref="utilisateur", lazy=True)
+
+
+class SoumissionModel(db_sql.Model):
+    """Modèle SQLAlchemy pour la table soumissions."""
+    __tablename__ = "soumissions"
+
+    id          = db_sql.Column(db_sql.Integer, primary_key=True, autoincrement=True)
+    user_id     = db_sql.Column(db_sql.Integer, db_sql.ForeignKey("utilisateurs.id"), nullable=False)
+    defi_id     = db_sql.Column(db_sql.String(64), nullable=False)
+    succes      = db_sql.Column(db_sql.Boolean, nullable=False)
+    date_soumis = db_sql.Column(db_sql.String(64), default=lambda: datetime.utcnow().isoformat())
+
+
+# ══════════════════════════════════════════════════════
+#  COUCHE DONNÉES — BaseDeDonnees (PostgreSQL via SQLAlchemy)
 # ══════════════════════════════════════════════════════
 
 class BaseDeDonnees:
-    def __init__(self, chemin: str = "ctf_platform.db"):
-        self.__chemin = chemin
-        self._initialiser_tables()
-
-    def _connexion(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.__chemin)
-        conn.row_factory = sqlite3.Row
-        return conn
-
-    def _initialiser_tables(self) -> None:
-        with self._connexion() as conn:
-            conn.executescript("""
-                CREATE TABLE IF NOT EXISTS utilisateurs (
-                    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                    nom_utilisateur TEXT    UNIQUE NOT NULL,
-                    email           TEXT    UNIQUE NOT NULL,
-                    mot_de_passe    TEXT    NOT NULL,
-                    score           INTEGER DEFAULT 0,
-                    confirme        INTEGER DEFAULT 0,
-                    token_confirm   TEXT,
-                    token_expiry    TEXT,
-                    date_inscription TEXT   DEFAULT CURRENT_TIMESTAMP
-                );
-                CREATE TABLE IF NOT EXISTS soumissions (
-                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id     INTEGER NOT NULL,
-                    defi_id     TEXT    NOT NULL,
-                    succes      INTEGER NOT NULL,
-                    date_soumis TEXT    DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY(user_id) REFERENCES utilisateurs(id)
-                );
-            """)
+    """Couche d'accès aux données utilisant SQLAlchemy + PostgreSQL."""
 
     def creer_utilisateur(self, nom, email, mdp_hash, token, expiry) -> bool:
         try:
-            with self._connexion() as conn:
-                conn.execute(
-                    "INSERT INTO utilisateurs (nom_utilisateur,email,mot_de_passe,token_confirm,token_expiry) VALUES (?,?,?,?,?)",
-                    (nom, email, mdp_hash, token, expiry)
-                )
+            u = UtilisateurModel(
+                nom_utilisateur=nom, email=email, mot_de_passe=mdp_hash,
+                token_confirm=token, token_expiry=expiry
+            )
+            db_sql.session.add(u)
+            db_sql.session.commit()
             return True
-        except sqlite3.IntegrityError:
+        except Exception:
+            db_sql.session.rollback()
             return False
 
     def obtenir_par_email(self, email):
-        with self._connexion() as conn:
-            return conn.execute("SELECT * FROM utilisateurs WHERE email=?", (email,)).fetchone()
+        return UtilisateurModel.query.filter_by(email=email).first()
 
     def obtenir_par_id(self, uid):
-        with self._connexion() as conn:
-            return conn.execute("SELECT * FROM utilisateurs WHERE id=?", (uid,)).fetchone()
+        return db_sql.session.get(UtilisateurModel, uid)
 
     def obtenir_par_token(self, token):
-        with self._connexion() as conn:
-            return conn.execute("SELECT * FROM utilisateurs WHERE token_confirm=?", (token,)).fetchone()
+        return UtilisateurModel.query.filter_by(token_confirm=token).first()
 
     def confirmer_utilisateur(self, uid) -> None:
-        with self._connexion() as conn:
-            conn.execute("UPDATE utilisateurs SET confirme=1, token_confirm=NULL WHERE id=?", (uid,))
+        u = db_sql.session.get(UtilisateurModel, uid)
+        if u:
+            u.confirme = True
+            u.token_confirm = None
+            db_sql.session.commit()
 
     def ajouter_score(self, uid, points) -> None:
-        with self._connexion() as conn:
-            conn.execute("UPDATE utilisateurs SET score = score + ? WHERE id=?", (points, uid))
+        u = db_sql.session.get(UtilisateurModel, uid)
+        if u:
+            u.score = (u.score or 0) + points
+            db_sql.session.commit()
 
     def a_deja_resolu(self, uid, defi_id) -> bool:
-        with self._connexion() as conn:
-            row = conn.execute(
-                "SELECT id FROM soumissions WHERE user_id=? AND defi_id=? AND succes=1",
-                (uid, defi_id)
-            ).fetchone()
-            return row is not None
+        return SoumissionModel.query.filter_by(
+            user_id=uid, defi_id=defi_id, succes=True
+        ).first() is not None
 
     def enregistrer_soumission(self, uid, defi_id, succes) -> None:
-        with self._connexion() as conn:
-            conn.execute(
-                "INSERT INTO soumissions (user_id,defi_id,succes) VALUES (?,?,?)",
-                (uid, defi_id, int(succes))
-            )
+        s = SoumissionModel(user_id=uid, defi_id=defi_id, succes=bool(succes))
+        db_sql.session.add(s)
+        db_sql.session.commit()
 
     def historique_soumissions(self, uid) -> list:
-        with self._connexion() as conn:
-            return conn.execute(
-                "SELECT defi_id, succes, date_soumis FROM soumissions WHERE user_id=? ORDER BY date_soumis DESC LIMIT 20",
-                (uid,)
-            ).fetchall()
+        rows = (
+            SoumissionModel.query
+            .filter_by(user_id=uid)
+            .order_by(SoumissionModel.date_soumis.desc())
+            .limit(20)
+            .all()
+        )
+        return [{"defi_id": r.defi_id, "succes": r.succes, "date_soumis": r.date_soumis} for r in rows]
+
+    def mettre_a_jour_photo(self, uid, url: str) -> None:
+        """Met à jour l'URL Cloudinary de la photo de profil."""
+        u = db_sql.session.get(UtilisateurModel, uid)
+        if u:
+            u.profile_pic = url
+            db_sql.session.commit()
 
 
 # ══════════════════════════════════════════════════════
@@ -113,14 +154,15 @@ class BaseDeDonnees:
 # ══════════════════════════════════════════════════════
 
 class Utilisateur(UserMixin):
-    def __init__(self, row):
-        self.id              = row["id"]
-        self.nom_utilisateur = row["nom_utilisateur"]
-        self.email           = row["email"]
-        self._mdp_hash       = row["mot_de_passe"]
-        self.score           = row["score"]
-        self.confirme        = bool(row["confirme"])
-        self.date_inscription= row["date_inscription"]
+    def __init__(self, row: UtilisateurModel):
+        self.id               = row.id
+        self.nom_utilisateur  = row.nom_utilisateur
+        self.email            = row.email
+        self._mdp_hash        = row.mot_de_passe
+        self.score            = row.score
+        self.confirme         = bool(row.confirme)
+        self.date_inscription = row.date_inscription
+        self.profile_pic      = row.profile_pic   # URL Cloudinary ou None
 
     def verifier_mot_de_passe(self, mdp) -> bool:
         return hashlib.sha256(mdp.encode()).hexdigest() == self._mdp_hash
@@ -146,7 +188,7 @@ class ServiceEmail:
     def envoyer_confirmation(self, destinataire, nom, lien) -> bool:
         corps_html = f"""<div style="font-family:monospace;background:#050810;color:#c8d8f0;padding:30px;">
           <h2 style="color:#00ff88;">CTF_LAB</h2><p>Bonjour <strong>{nom}</strong>,</p>
-          <a href="{lien}" style="display:inline-block;margin:20px 0;padding:12px 24px;background:#00ff88;color:#000;">✅ Confirmer</a>
+          <a href="{lien}" style="display:inline-block;margin:20px 0;padding:12px 24px;background:#00ff88;color:#000;">Confirmer</a>
         </div>"""
         msg = MIMEMultipart("alternative")
         msg["Subject"] = "CTF_LAB — Confirmez votre adresse email"
@@ -184,17 +226,17 @@ class GestionnaireAuth:
             return {"succes": False, "message": "Email ou nom d'utilisateur déjà utilisé."}
         row = self.__db.obtenir_par_email(email)
         if row:
-            self.__db.confirmer_utilisateur(row["id"])
+            self.__db.confirmer_utilisateur(row.id)
         return {"succes": True, "message": "Inscription réussie ! Vous pouvez vous connecter."}
 
     def confirmer_email(self, token) -> dict:
         row = self.__db.obtenir_par_token(token)
         if not row:
             return {"succes": False, "message": "Lien invalide ou déjà utilisé."}
-        expiry = datetime.fromisoformat(row["token_expiry"])
+        expiry = datetime.fromisoformat(row.token_expiry)
         if datetime.utcnow() > expiry:
             return {"succes": False, "message": "Lien expiré."}
-        self.__db.confirmer_utilisateur(row["id"])
+        self.__db.confirmer_utilisateur(row.id)
         return {"succes": True, "message": "Email confirmé !"}
 
     def connecter(self, email, mdp) -> dict:
@@ -282,9 +324,9 @@ class DefiStegano(DefiCTF):
 
     def obtenir_indice(self) -> str:
         n = self.__validateur.tentatives
-        if n < 3: return "💡 Le secret se cache dans les pixels…"
-        if n < 6: return f"💡 Essayez d'extraire avec {self._outil_cache}."
-        return f"💡 Commande : {self._outil_cache} extract -sf image.jpg -p [mot_de_passe]"
+        if n < 3: return "Le secret se cache dans les pixels..."
+        if n < 6: return f"Essayez d'extraire avec {self._outil_cache}."
+        return f"Commande : {self._outil_cache} extract -sf image.jpg -p [mot_de_passe]"
 
     def to_dict(self) -> dict:
         return {
@@ -297,8 +339,6 @@ class DefiStegano(DefiCTF):
 
 
 class DefiCrypto(DefiCTF):
-    """Défi de cryptographie avec texte chiffré et indices progressifs."""
-
     def __init__(self, titre, description, points, difficulte,
                  flag_secret, texte_chiffre, indices, categorie_crypto):
         super().__init__(titre, description, points, difficulte)
@@ -355,15 +395,15 @@ class GestionnaireCTF:
         if not defi:
             return {"succes": False, "message": "Défi introuvable.", "code": 404}
         if db.a_deja_resolu(uid, identifiant):
-            return {"succes": True, "message": "✅ Vous avez déjà résolu ce défi !", "points": 0, "deja_resolu": True, "code": 200}
+            return {"succes": True, "message": "Vous avez déjà résolu ce défi !", "points": 0, "deja_resolu": True, "code": 200}
         if defi.bloque:
-            return {"succes": False, "message": "🔒 Trop de tentatives.", "code": 429}
+            return {"succes": False, "message": "Trop de tentatives.", "code": 429}
         correct = defi.verifier_flag(tentative)
         db.enregistrer_soumission(uid, identifiant, correct)
         if correct:
             db.ajouter_score(uid, defi.points)
-            return {"succes": True, "message": f"🎉 Félicitations ! +{defi.points} points !", "points": defi.points, "code": 200}
-        return {"succes": False, "message": "❌ Flag incorrect. Continuez à chercher…",
+            return {"succes": True, "message": f"Félicitations ! +{defi.points} points !", "points": defi.points, "code": 200}
+        return {"succes": False, "message": "Flag incorrect. Continuez à chercher...",
                 "indice": defi.obtenir_indice(), "tentatives": defi.tentatives, "code": 200}
 
     def liste_defis(self):
@@ -378,7 +418,21 @@ class ApplicationCTF:
 
     def __init__(self):
         self._app = Flask(__name__)
-        self._app.secret_key = secrets.token_hex(32)
+        self._app.secret_key = os.getenv("SECRET_KEY", secrets.token_hex(32))
+
+        # ── Configuration base de données PostgreSQL ──
+        # Sur Railway : DATABASE_URL est fourni automatiquement.
+        # SQLAlchemy nécessite "postgresql://" et non "postgres://".
+        database_url = os.getenv("DATABASE_URL", "sqlite:///ctf_platform.db")
+        if database_url.startswith("postgres://"):
+            database_url = database_url.replace("postgres://", "postgresql://", 1)
+        self._app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+        self._app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+        self._app.config["MAX_CONTENT_LENGTH"] = MAX_FILE_SIZE_MB * 1024 * 1024
+
+        # Initialise SQLAlchemy avec l'app
+        db_sql.init_app(self._app)
+
         self._service_email = ServiceEmail(
             smtp_host="smtp.gmail.com", smtp_port=465,
             expediteur=os.getenv("CTF_EMAIL", "votre.email@gmail.com"),
@@ -388,6 +442,10 @@ class ApplicationCTF:
         self._db = BaseDeDonnees()
         self._auth = GestionnaireAuth(self._db, self._service_email, self._url_base)
         self._gestionnaire = GestionnaireCTF()
+
+        with self._app.app_context():
+            db_sql.create_all()   # Crée les tables si elles n'existent pas
+
         self._configurer_login_manager()
         self._initialiser_defis()
         self._enregistrer_routes()
@@ -406,7 +464,6 @@ class ApplicationCTF:
             return self._auth.charger_utilisateur(int(uid))
 
     def _initialiser_defis(self):
-        # ── Stéganographie ──────────────────────────
         self._gestionnaire.enregistrer_defi("stegano_01", DefiStegano(
             titre="Ombres Numériques",
             description=(
@@ -419,7 +476,6 @@ class ApplicationCTF:
             fichier_image="image_piege.jpg", outil_cache="steghide",
         ))
 
-        # ── Crypto 1 — César ROT13 (Facile) ─────────
         self._gestionnaire.enregistrer_defi("crypto_01", DefiCrypto(
             titre="César et la Légion",
             description=(
@@ -432,14 +488,13 @@ class ApplicationCTF:
             flag_secret="CTF{cesar_decode_veni_vidi_vici}",
             texte_chiffre="PGS{prfne_qrpbqr_irav_ivqv_ivpv}",
             indices=[
-                "💡 Ce chiffrement substitue chaque lettre par une autre décalée d'un nombre fixe de positions.",
-                "💡 Le chiffre de César utilise un décalage constant. Essayez tous les décalages de 1 à 25.",
-                "💡 Le décalage utilisé ici est 13 (ROT13). Appliquez ROT13 à chaque lettre du texte chiffré.",
+                "Ce chiffrement substitue chaque lettre par une autre décalée d'un nombre fixe de positions.",
+                "Le chiffre de César utilise un décalage constant. Essayez tous les décalages de 1 à 25.",
+                "Le décalage utilisé ici est 13 (ROT13). Appliquez ROT13 à chaque lettre du texte chiffré.",
             ],
             categorie_crypto="Chiffrement par substitution / César",
         ))
 
-        # ── Crypto 2 — Base64 + XOR (Moyen) ─────────
         xor_hex = "".join(f"{b ^ 0x42:02x}" for b in base64.b64encode(b"CTF{x0r_and_b4se64_master}"))
         self._gestionnaire.enregistrer_defi("crypto_02", DefiCrypto(
             titre="Double Masque",
@@ -453,14 +508,13 @@ class ApplicationCTF:
             flag_secret="CTF{x0r_and_b4se64_master}",
             texte_chiffre=xor_hex,
             indices=[
-                "💡 Le texte est en hexadécimal. Convertissez-le d'abord en octets.",
-                "💡 Chaque octet a été XORé avec 0x42. Appliquez XOR(0x42) à chaque octet pour inverser l'opération.",
-                "💡 Après le XOR vous obtenez une chaîne Base64. Décodez-la pour obtenir le flag final.",
+                "Le texte est en hexadécimal. Convertissez-le d'abord en octets.",
+                "Chaque octet a été XORé avec 0x42. Appliquez XOR(0x42) à chaque octet pour inverser l'opération.",
+                "Après le XOR vous obtenez une chaîne Base64. Décodez-la pour obtenir le flag final.",
             ],
             categorie_crypto="XOR / Base64",
         ))
 
-        # ── Crypto 3 — RSA faible (Difficile) ───────
         self._gestionnaire.enregistrer_defi("crypto_03", DefiCrypto(
             titre="RSA Brisé",
             description=(
@@ -474,9 +528,9 @@ class ApplicationCTF:
             flag_secret="CTF{65}",
             texte_chiffre="n = 3233  |  e = 17  |  c = 2790",
             indices=[
-                "💡 n = 3233 est petit. Trouvez p et q tels que p × q = n en essayant des diviseurs.",
-                "💡 p = 61 et q = 53. Calculez φ(n) = (p−1)(q−1) = 3120, puis trouvez d tel que e·d ≡ 1 (mod φ(n)).",
-                "💡 d = 2753. Déchiffrez : m = c^d mod n = 2201^2753 mod 3233. Le flag est CTF{m}.",
+                "n = 3233 est petit. Trouvez p et q tels que p x q = n en essayant des diviseurs.",
+                "p = 61 et q = 53. Calculez phi(n) = (p-1)(q-1) = 3120, puis trouvez d tel que e*d = 1 (mod phi(n)).",
+                "d = 2753. Déchiffrez : m = c^d mod n = 2201^2753 mod 3233. Le flag est CTF{m}.",
             ],
             categorie_crypto="RSA",
         ))
@@ -538,6 +592,57 @@ class ApplicationCTF:
             historique = self._db.historique_soumissions(current_user.id)
             return render_template("profil.html", historique=historique)
 
+        # ── NOUVELLE ROUTE : Paramètres du profil (photo) ──────────────────
+        @app.route("/profil/parametres", methods=["GET", "POST"])
+        @login_required
+        def parametres_profil():
+            """Permet à l'utilisateur de changer sa photo de profil via Cloudinary."""
+            if request.method == "POST":
+                if "photo" not in request.files:
+                    flash("Aucun fichier sélectionné.", "danger")
+                    return redirect(url_for("parametres_profil"))
+
+                fichier = request.files["photo"]
+                if fichier.filename == "":
+                    flash("Aucun fichier sélectionné.", "danger")
+                    return redirect(url_for("parametres_profil"))
+
+                if not allowed_file(fichier.filename):
+                    flash("Format non supporté. Utilisez PNG, JPG, GIF ou WEBP.", "danger")
+                    return redirect(url_for("parametres_profil"))
+
+                try:
+                    # Upload vers Cloudinary :
+                    # - folder      : dossier Cloudinary dédié
+                    # - public_id   : identifiant unique par utilisateur (écrase l'ancienne photo)
+                    # - overwrite   : True pour remplacer l'existant
+                    # - transformation : redimensionne en carré 256×256 centré sur le visage
+                    resultat = cloudinary.uploader.upload(
+                        fichier,
+                        folder="ctf_lab/avatars",
+                        public_id=f"user_{current_user.id}",
+                        overwrite=True,
+                        transformation=[
+                            {"width": 256, "height": 256,
+                             "crop": "fill", "gravity": "face"}
+                        ],
+                        resource_type="image",
+                    )
+                    url_photo = resultat.get("secure_url")
+                    # Sauvegarde l'URL HTTPS dans PostgreSQL (persistant entre redéploiements)
+                    self._db.mettre_a_jour_photo(current_user.id, url_photo)
+                    flash("Photo de profil mise à jour avec succès !", "success")
+                except Exception as e:
+                    logging.getLogger("upload").error(f"Cloudinary upload error: {e}")
+                    flash("Erreur lors de l'upload. Vérifiez vos clés Cloudinary.", "danger")
+
+                return redirect(url_for("parametres_profil"))
+
+            # GET : recharge depuis BDD pour avoir la photo la plus récente
+            user_row = self._db.obtenir_par_id(current_user.id)
+            photo_actuelle = user_row.profile_pic if user_row else None
+            return render_template("parametres_profil.html", photo_actuelle=photo_actuelle)
+
         @app.route("/defi/<identifiant>")
         @login_required
         def page_defi(identifiant):
@@ -565,9 +670,9 @@ class ApplicationCTF:
             dossier = os.path.join(app.root_path, "static", "images")
             return send_from_directory(dossier, nom_fichier, as_attachment=True)
 
-    def lancer(self, debug=True, port=5000):
+    def lancer(self, debug=False, port=5000):
         self._app.run(debug=debug, port=port)
 
 
 if __name__ == "__main__":
-    ApplicationCTF().lancer()
+    ApplicationCTF().lancer(debug=True)
