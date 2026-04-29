@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block titre %}CTF_LAB — Scoreboard{% endblock %}
+{% block styles %}
+.podium-wrap{display:flex;align-items:flex-end;justify-content:center;gap:1.5rem;margin-bottom:3rem;}
+.podium-item{text-align:center;position:relative;}
+.podium-block{border-radius:6px 6px 0 0;width:110px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:1rem;}
+.podium-1{height:130px;background:linear-gradient(180deg,rgba(255,209,102,.15),rgba(255,209,102,.05));border:1px solid rgba(255,209,102,.4);}
+.podium-2{height:95px;background:linear-gradient(180deg,rgba(200,216,240,.1),rgba(200,216,240,.03));border:1px solid rgba(200,216,240,.25);}
+.podium-3{height:70px;background:linear-gradient(180deg,rgba(205,127,50,.1),rgba(205,127,50,.03));border:1px solid rgba(205,127,50,.25);}
+.podium-rank{font-family:var(--mono);font-size:1.4rem;font-weight:700;}
+.podium-rank-1{color:var(--yellow);}
+.podium-rank-2{color:#c8d8f0;}
+.podium-rank-3{color:#cd7f32;}
+.podium-avatar{width:48px;height:48px;border-radius:50%;object-fit:cover;margin-bottom:.5rem;border:2px solid;}
+.podium-avatar-1{border-color:var(--yellow);box-shadow:0 0 14px rgba(255,209,102,.4);}
+.podium-avatar-2{border-color:#c8d8f0;}
+.podium-avatar-3{border-color:#cd7f32;}
+.podium-fallback{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:.5rem;border:2px solid;}
+.podium-name{font-family:var(--mono);font-size:.78rem;color:var(--text);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.podium-pts{font-family:var(--mono);font-size:.72rem;margin-top:.2rem;}
+
+/* Table */
+.sb-table{width:100%;border-collapse:collapse;}
+.sb-table th{font-family:var(--mono);font-size:.72rem;color:var(--text-dim);letter-spacing:1px;padding:.6rem 1rem;border-bottom:1px solid var(--border);text-transform:uppercase;}
+.sb-table td{padding:.75rem 1rem;border-bottom:1px solid rgba(26,37,69,.6);font-family:var(--mono);font-size:.85rem;vertical-align:middle;}
+.sb-table tr:last-child td{border-bottom:none;}
+.sb-table tr{transition:background .15s;}
+.sb-table tr:hover td{background:rgba(0,255,136,.03);}
+.sb-row-me td{background:rgba(0,207,255,.05)!important;border-left:2px solid var(--cyan);}
+.sb-rank{font-size:1rem;font-weight:700;color:var(--text-dim);width:50px;}
+.sb-rank-1{color:var(--yellow);}
+.sb-rank-2{color:#c8d8f0;}
+.sb-rank-3{color:#cd7f32;}
+.sb-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;border:1.5px solid var(--border);}
+.sb-avatar-placeholder{width:32px;height:32px;border-radius:50%;background:rgba(0,255,136,.07);border:1.5px solid var(--border);display:inline-flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:.85rem;}
+.sb-score{color:var(--yellow);}
+.sb-solved{color:var(--green);}
+.you-badge{font-size:.65rem;padding:.15em .5em;background:rgba(0,207,255,.12);border:1px solid var(--cyan);color:var(--cyan);border-radius:3px;margin-left:.5rem;vertical-align:middle;}
+.medal{font-size:1.1rem;}
+{% endblock %}
+
+{% block contenu %}
+
+<!-- Header -->
+<div class="d-flex align-items-center gap-3 mb-5">
+  <div>
+    <p class="font-mono text-dim mb-0" style="font-size:.75rem;">// CLASSEMENT GÉNÉRAL</p>
+    <h1 class="font-mono text-yellow glow mb-0" style="font-size:2rem;">
+      <i class="bi bi-trophy-fill me-2"></i>Scoreboard
+    </h1>
+  </div>
+  <div class="flex-grow-1" style="height:1px;background:var(--border);"></div>
+  <span class="font-mono text-dim" style="font-size:.75rem;">{{ joueurs|length }} participant{{ 's' if joueurs|length != 1 else '' }}</span>
+</div>
+
+{% if joueurs %}
+
+<!-- ── PODIUM (top 3) ── -->
+{% if joueurs|length >= 3 %}
+<div class="podium-wrap">
+
+  <!-- 2nd place -->
+  {% set p2 = joueurs[1] %}
+  <div class="podium-item">
+    {% if p2.profile_pic %}
+      <img src="{{ p2.profile_pic }}" class="podium-avatar podium-avatar-2 d-block mx-auto mb-1" alt="">
+    {% else %}
+      <div class="podium-fallback podium-avatar-2 mx-auto mb-1" style="border-color:#c8d8f0;color:#c8d8f0;background:rgba(200,216,240,.07);">
+        <i class="bi bi-person-fill"></i>
+      </div>
+    {% endif %}
+    <div class="podium-name text-center mx-auto">{{ p2.nom }}</div>
+    <div class="podium-pts text-center" style="color:#c8d8f0;">{{ p2.score }} pts</div>
+    <div class="podium-block podium-2 mt-2">
+      <span class="podium-rank" style="color:#c8d8f0;">2</span>
+    </div>
+  </div>
+
+  <!-- 1st place -->
+  {% set p1 = joueurs[0] %}
+  <div class="podium-item">
+    <div class="text-center mb-1" style="font-size:1.4rem;">👑</div>
+    {% if p1.profile_pic %}
+      <img src="{{ p1.profile_pic }}" class="podium-avatar podium-avatar-1 d-block mx-auto mb-1" alt="">
+    {% else %}
+      <div class="podium-fallback podium-avatar-1 mx-auto mb-1" style="border-color:var(--yellow);color:var(--yellow);background:rgba(255,209,102,.07);">
+        <i class="bi bi-person-fill"></i>
+      </div>
+    {% endif %}
+    <div class="podium-name text-center mx-auto" style="color:var(--yellow);">{{ p1.nom }}</div>
+    <div class="podium-pts text-center" style="color:var(--yellow);">{{ p1.score }} pts</div>
+    <div class="podium-block podium-1 mt-2">
+      <span class="podium-rank podium-rank-1">1</span>
+    </div>
+  </div>
+
+  <!-- 3rd place -->
+  {% set p3 = joueurs[2] %}
+  <div class="podium-item">
+    {% if p3.profile_pic %}
+      <img src="{{ p3.profile_pic }}" class="podium-avatar podium-avatar-3 d-block mx-auto mb-1" alt="">
+    {% else %}
+      <div class="podium-fallback podium-avatar-3 mx-auto mb-1" style="border-color:#cd7f32;color:#cd7f32;background:rgba(205,127,50,.07);">
+        <i class="bi bi-person-fill"></i>
+      </div>
+    {% endif %}
+    <div class="podium-name text-center mx-auto">{{ p3.nom }}</div>
+    <div class="podium-pts text-center" style="color:#cd7f32;">{{ p3.score }} pts</div>
+    <div class="podium-block podium-3 mt-2">
+      <span class="podium-rank podium-rank-3">3</span>
+    </div>
+  </div>
+
+</div>
+{% endif %}
+
+<!-- ── Full table ── -->
+<div class="ctf-card p-0 overflow-hidden">
+  <table class="sb-table">
+    <thead>
+      <tr>
+        <th style="width:60px;">#</th>
+        <th>Joueur</th>
+        <th class="text-end">Défis résolus</th>
+        <th class="text-end">Score</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for j in joueurs %}
+      <tr class="{{ 'sb-row-me' if j.est_moi else '' }}">
+
+        <!-- Rank -->
+        <td class="sb-rank {% if loop.index == 1 %}sb-rank-1{% elif loop.index == 2 %}sb-rank-2{% elif loop.index == 3 %}sb-rank-3{% endif %}">
+          {% if loop.index == 1 %}🥇
+          {% elif loop.index == 2 %}🥈
+          {% elif loop.index == 3 %}🥉
+          {% else %}{{ loop.index }}{% endif %}
+        </td>
+
+        <!-- Avatar + name -->
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            {% if j.profile_pic %}
+              <img src="{{ j.profile_pic }}" class="sb-avatar" alt="">
+            {% else %}
+              <span class="sb-avatar-placeholder"><i class="bi bi-person-fill"></i></span>
+            {% endif %}
+            <span>{{ j.nom }}</span>
+            {% if j.est_moi %}<span class="you-badge">VOUS</span>{% endif %}
+          </div>
+        </td>
+
+        <!-- Solved count -->
+        <td class="text-end sb-solved">{{ j.defis_resolus }}</td>
+
+        <!-- Score -->
+        <td class="text-end sb-score">{{ j.score }} pts</td>
+
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% else %}
+<div class="ctf-card p-5 text-center">
+  <i class="bi bi-hourglass text-dim" style="font-size:2.5rem;"></i>
+  <p class="font-mono text-dim mt-3 mb-0">// Aucun participant pour le moment</p>
+</div>
+{% endif %}
+
+{% endblock %}

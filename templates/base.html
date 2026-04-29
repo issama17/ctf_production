@@ -25,11 +25,17 @@
     .nav-link-ctf{font-family:var(--mono);font-size:.8rem;color:var(--text-dim)!important;letter-spacing:1px;text-decoration:none;padding:.4rem .8rem;border-radius:4px;transition:all .2s;}
     .nav-link-ctf:hover{color:var(--green)!important;background:rgba(0,255,136,.07);}
     .nav-link-ctf.active{color:var(--green)!important;}
-    .nav-user{font-family:var(--mono);font-size:.8rem;color:var(--cyan);padding:.4rem .8rem;}
-    .btn-nav-logout{font-family:var(--mono);font-size:.75rem;background:transparent;border:1px solid var(--red);color:var(--red);padding:.3rem .8rem;border-radius:4px;cursor:pointer;transition:all .2s;}
+    .btn-nav-logout{font-family:var(--mono);font-size:.75rem;background:transparent;border:1px solid var(--red);color:var(--red);padding:.3rem .8rem;border-radius:4px;cursor:pointer;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;}
     .btn-nav-logout:hover{background:var(--red);color:#fff;}
     .btn-nav-login{font-family:var(--mono);font-size:.75rem;background:transparent;border:1px solid var(--green);color:var(--green);padding:.3rem .8rem;border-radius:4px;text-decoration:none;transition:all .2s;}
     .btn-nav-login:hover{background:var(--green);color:#000;}
+
+    /* Navbar avatar */
+    .nav-avatar{width:30px;height:30px;border-radius:50%;object-fit:cover;border:1.5px solid var(--green);vertical-align:middle;}
+    .nav-avatar-placeholder{width:30px;height:30px;border-radius:50%;background:rgba(0,255,136,.1);border:1.5px solid var(--green);display:inline-flex;align-items:center;justify-content:center;color:var(--green);font-size:.85rem;vertical-align:middle;}
+    .nav-user-btn{font-family:var(--mono);font-size:.8rem;color:var(--cyan);padding:.3rem .7rem;border-radius:4px;text-decoration:none;display:inline-flex;align-items:center;gap:.5rem;background:transparent;border:1px solid var(--border);transition:all .2s;}
+    .nav-user-btn:hover{border-color:var(--cyan);background:rgba(0,207,255,.06);color:var(--cyan);}
+    .nav-pts{font-family:var(--mono);font-size:.75rem;color:var(--yellow);}
 
     /* Cards */
     .ctf-card{background:var(--card);border:1px solid var(--border);border-radius:8px;transition:border-color .25s,box-shadow .25s;}
@@ -79,16 +85,23 @@
     {% if current_user.is_authenticated %}
     <a href="/" class="nav-link-ctf"><i class="bi bi-grid me-1"></i>Défis</a>
     <a href="/profil" class="nav-link-ctf"><i class="bi bi-person me-1"></i>Profil</a>
+    <a href="/scoreboard" class="nav-link-ctf"><i class="bi bi-trophy me-1"></i>Scoreboard</a>
     {% endif %}
   </div>
 
   <div class="d-flex align-items-center gap-2">
     {% if current_user.is_authenticated %}
-      <span class="nav-user">
-        <i class="bi bi-person-circle me-1"></i>{{ current_user.nom_utilisateur }}
-        <span class="text-yellow ms-2"><i class="bi bi-star-fill"></i> {{ current_user.score }} pts</span>
-      </span>
-      <a href="/deconnexion" class="btn-nav-logout text-decoration-none">
+      <!-- Avatar + username button linking to profile -->
+      <a href="/profil" class="nav-user-btn text-decoration-none">
+        {% if current_user.profile_pic %}
+          <img src="{{ current_user.profile_pic }}" alt="avatar" class="nav-avatar">
+        {% else %}
+          <span class="nav-avatar-placeholder"><i class="bi bi-person-fill"></i></span>
+        {% endif %}
+        <span>{{ current_user.nom_utilisateur }}</span>
+      </a>
+      <span class="nav-pts"><i class="bi bi-star-fill me-1"></i>{{ current_user.score }} pts</span>
+      <a href="/deconnexion" class="btn-nav-logout">
         <i class="bi bi-box-arrow-right me-1"></i>Déconnexion
       </a>
     {% else %}

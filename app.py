@@ -148,6 +148,16 @@ class BaseDeDonnees:
             u.profile_pic = url
             db_sql.session.commit()
 
+    def scoreboard(self) -> list:
+        """Retourne tous les utilisateurs triés par score décroissant."""
+        rows = (
+            UtilisateurModel.query
+            .filter_by(confirme=True)
+            .order_by(UtilisateurModel.score.desc())
+            .all()
+        )
+        return rows
+
 
 # ══════════════════════════════════════════════════════
 #  COUCHE DOMAINE — Utilisateur
@@ -642,6 +652,25 @@ class ApplicationCTF:
             user_row = self._db.obtenir_par_id(current_user.id)
             photo_actuelle = user_row.profile_pic if user_row else None
             return render_template("parametres_profil.html", photo_actuelle=photo_actuelle)
+
+        @app.route("/scoreboard")
+        @login_required
+        def scoreboard():
+            rows = self._db.scoreboard()
+            joueurs = []
+            for row in rows:
+                # Count resolved challenges for each user
+                resolus = SoumissionModel.query.filter_by(
+                    user_id=row.id, succes=True
+                ).count()
+                joueurs.append({
+                    "nom":          row.nom_utilisateur,
+                    "score":        row.score or 0,
+                    "profile_pic":  row.profile_pic,
+                    "defis_resolus": resolus,
+                    "est_moi":      row.id == current_user.id,
+                })
+            return render_template("scoreboard.html", joueurs=joueurs)
 
         @app.route("/defi/<identifiant>")
         @login_required
