@@ -9,8 +9,6 @@ from werkzeug.utils import secure_filename
 from flask import render_template, request, jsonify, send_from_directory, redirect, url_for, flash, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 
-LAST_CLOUDINARY_ERROR = "No errors yet."
-
 def register_routes(app, service_auth, service_ctf, user_repo):
     
     ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
@@ -106,8 +104,6 @@ def register_routes(app, service_auth, service_ctf, user_repo):
                 user_repo.mettre_a_jour_photo(current_user.id, url_photo)
                 flash("Photo de profil mise à jour avec succès !", "success")
             except Exception as e:
-                global LAST_CLOUDINARY_ERROR
-                LAST_CLOUDINARY_ERROR = str(e)
                 logging.getLogger("upload").error(f"Cloudinary upload error: {e}")
                 flash(f"Erreur d'upload : {str(e)}", "danger")
 
@@ -155,25 +151,6 @@ def register_routes(app, service_auth, service_ctf, user_repo):
             current_user.id
         )
         return jsonify(res), res["code"]
-
-    @app.route("/debug-env")
-    def debug_env():
-        cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME", "")
-        api_key = os.getenv("CLOUDINARY_API_KEY", "")
-        api_secret = os.getenv("CLOUDINARY_API_SECRET", "")
-        return jsonify({
-            "cloud_name": f"{cloud_name[:3]}... (len: {len(cloud_name)})",
-            "api_key": f"{api_key[:3]}... (len: {len(api_key)})",
-            "api_secret": f"{api_secret[:3]}... (len: {len(api_secret)})",
-            "env_keys": list(os.environ.keys())
-        })
-
-    @app.route("/debug-upload")
-    def debug_upload():
-        global LAST_CLOUDINARY_ERROR
-        return jsonify({
-            "last_error": LAST_CLOUDINARY_ERROR
-        })
 
     @app.route("/telecharger/<nom_fichier>")
     @login_required
