@@ -9,6 +9,8 @@ from werkzeug.utils import secure_filename
 from flask import render_template, request, jsonify, send_from_directory, redirect, url_for, flash, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 
+LAST_CLOUDINARY_ERROR = "No errors yet."
+
 def register_routes(app, service_auth, service_ctf, user_repo):
     
     ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
@@ -104,6 +106,8 @@ def register_routes(app, service_auth, service_ctf, user_repo):
                 user_repo.mettre_a_jour_photo(current_user.id, url_photo)
                 flash("Photo de profil mise à jour avec succès !", "success")
             except Exception as e:
+                global LAST_CLOUDINARY_ERROR
+                LAST_CLOUDINARY_ERROR = str(e)
                 logging.getLogger("upload").error(f"Cloudinary upload error: {e}")
                 flash(f"Erreur d'upload : {str(e)}", "danger")
 
@@ -166,12 +170,10 @@ def register_routes(app, service_auth, service_ctf, user_repo):
 
     @app.route("/debug-upload")
     def debug_upload():
-        try:
-            import cloudinary.uploader
-            res = cloudinary.uploader.upload("https://via.placeholder.com/150", folder="ctf_lab/avatars")
-            return jsonify({"success": True, "url": res.get("secure_url")})
-        except Exception as e:
-            return jsonify({"success": False, "error": str(e)})
+        global LAST_CLOUDINARY_ERROR
+        return jsonify({
+            "last_error": LAST_CLOUDINARY_ERROR
+        })
 
     @app.route("/telecharger/<nom_fichier>")
     @login_required
