@@ -118,6 +118,7 @@ def register_routes(app, service_auth, service_ctf, user_repo):
         photo_actuelle = user_row.profile_pic if user_row else None
         return render_template("parametres_profil.html", photo_actuelle=photo_actuelle)
 
+    from models import FabriqueStatut
     @app.route("/scoreboard")
     @login_required
     def scoreboard():
@@ -125,13 +126,14 @@ def register_routes(app, service_auth, service_ctf, user_repo):
         joueurs = []
         for row in rows:
             resolus = service_ctf._challenge_repo.obtenir_nombre_resolus(row.id)
+            statut_obj = FabriqueStatut.creer(row.statut)
             joueurs.append({
                 "nom":          row.username,
                 "score":        row.score or 0,
                 "profile_pic":  row.profile_pic,
                 "defis_resolus": resolus,
-                "statut_nom":   row.statut_nom,
-                "statut_couleur": row.statut_couleur,
+                "statut_nom":   statut_obj.obtenir_nom(),
+                "statut_couleur": statut_obj.obtenir_couleur(),
                 "experience":   row.experience,
                 "est_moi":      row.id == current_user.id,
             })
