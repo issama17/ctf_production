@@ -5,16 +5,19 @@ venv/
 # Base de données
 *.db
 ctf_platform.db
+*.sqlite3
 
 # Cache Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.pytest_cache/
 
 # Fichiers sensibles
 .env
 *.env
+*.pem
 
 # Fichiers système Windows
 Thumbs.db
@@ -23,6 +26,10 @@ desktop.ini
 # Fichiers système macOS
 .DS_Store
 
+# Logs
+*.log
+
 # Scripts de préparation (pas nécessaires en prod)
 setup.py
 inject.py
+scratch/
