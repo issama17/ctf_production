@@ -164,6 +164,15 @@ def register_routes(app, service_auth, service_ctf, user_repo):
             "env_keys": list(os.environ.keys())
         })
 
+    @app.route("/debug-upload")
+    def debug_upload():
+        try:
+            import cloudinary.uploader
+            res = cloudinary.uploader.upload("https://via.placeholder.com/150", folder="ctf_lab/avatars")
+            return jsonify({"success": True, "url": res.get("secure_url")})
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)})
+
     @app.route("/telecharger/<nom_fichier>")
     @login_required
     def telecharger(nom_fichier):
