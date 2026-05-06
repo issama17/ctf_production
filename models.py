@@ -14,6 +14,34 @@ from exceptions import DefiBloqueException, DefiDejaResoluException
 db = SQLAlchemy()
 
 # ══════════════════════════════════════════════════════
+#  PATRON STRATEGY / FACTORY : Statut Utilisateur
+# ══════════════════════════════════════════════════════
+class StatutUtilisateur(ABC):
+    @abstractmethod
+    def obtenir_nom(self) -> str: pass
+    @abstractmethod
+    def obtenir_couleur(self) -> str: pass
+
+class StatutEtudiant(StatutUtilisateur):
+    def obtenir_nom(self) -> str: return "Étudiant"
+    def obtenir_couleur(self) -> str: return "var(--cyan)"
+
+class StatutProfesseur(StatutUtilisateur):
+    def obtenir_nom(self) -> str: return "Professeur"
+    def obtenir_couleur(self) -> str: return "var(--yellow)"
+
+class StatutExterne(StatutUtilisateur):
+    def obtenir_nom(self) -> str: return "Externe"
+    def obtenir_couleur(self) -> str: return "var(--text-dim)"
+
+class FabriqueStatut:
+    @staticmethod
+    def creer(statut_str: str) -> StatutUtilisateur:
+        if statut_str == "Professeur": return StatutProfesseur()
+        if statut_str == "Externe": return StatutExterne()
+        return StatutEtudiant()
+
+# ══════════════════════════════════════════════════════
 #  MODÈLES ORM (Couche d'accès aux données)
 # ══════════════════════════════════════════════════════
 
@@ -27,6 +55,8 @@ class UserModele(db.Model):
     role = db.Column(db.String(32), default="participant")
     registration_date = db.Column(db.String(64), default=lambda: datetime.utcnow().isoformat())
     profile_pic = db.Column(db.String(512), nullable=True, default=None)
+    statut = db.Column(db.String(64), nullable=True, default="Étudiant")
+    experience = db.Column(db.String(32), nullable=True, default="Débutant")
 
     submissions = db.relationship("SubmissionModele", backref="user", lazy=True)
     attempts = db.relationship("AttemptModele", backref="user", lazy=True)
@@ -78,9 +108,11 @@ class Utilisateur(UserMixin, ABC):
         self._username = user_modele.username
         self._email = user_modele.email
         self._password_hash = user_modele.password_hash
-        self._score = user_modele.score
+        self._score = user_modele.score or 0
         self._registration_date = user_modele.registration_date
         self._profile_pic = user_modele.profile_pic
+        self._statut_obj = FabriqueStatut.creer(user_modele.statut)
+        self._experience = user_modele.experience
 
     @property
     def id(self) -> int: return self._id
@@ -92,6 +124,14 @@ class Utilisateur(UserMixin, ABC):
     def score(self) -> int: return self._score
     @property
     def profile_pic(self) -> str: return self._profile_pic
+    
+    @property
+    def statut_nom(self) -> str: return self._statut_obj.obtenir_nom()
+    @property
+    def statut_couleur(self) -> str: return self._statut_obj.obtenir_couleur()
+    
+    @property
+    def experience(self) -> str: return self._experience
 
     def get_id(self) -> str:
         return str(self.id)

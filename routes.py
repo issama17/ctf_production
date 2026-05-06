@@ -35,6 +35,8 @@ def register_routes(app, service_auth, service_ctf, user_repo):
                 request.form.get("nom", "").strip(),
                 request.form.get("email", "").strip().lower(),
                 request.form.get("mdp", ""),
+                request.form.get("statut", "Étudiant"),
+                request.form.get("experience", "Débutant"),
             )
             flash(res["message"], "success" if res["succes"] else "danger")
             if res["succes"]:
@@ -128,6 +130,9 @@ def register_routes(app, service_auth, service_ctf, user_repo):
                 "score":        row.score or 0,
                 "profile_pic":  row.profile_pic,
                 "defis_resolus": resolus,
+                "statut_nom":   row.statut_nom,
+                "statut_couleur": row.statut_couleur,
+                "experience":   row.experience,
                 "est_moi":      row.id == current_user.id,
             })
         return render_template("scoreboard.html", joueurs=joueurs)

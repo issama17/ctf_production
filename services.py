@@ -15,16 +15,24 @@ class ServiceAuth:
         self._base_url = base_url
         self._logger = logging.getLogger(self.__class__.__name__)
 
-    def inscrire(self, username: str, email: str, password: str) -> dict:
+    def inscrire(self, username: str, email: str, password: str, statut: str = "Étudiant", experience: str = "Débutant") -> dict:
         if len(username) < 3:
             return {"succes": False, "message": "Le nom doit faire au moins 3 caractères."}
         if len(password) < 6:
             return {"succes": False, "message": "Le mot de passe doit faire au moins 6 caractères."}
         if "@" not in email:
             return {"succes": False, "message": "Email invalide."}
-        
+            
+        if self._user_repo.obtenir_par_email(email):
+            return {"succes": False, "message": "Cet email est déjà utilisé."}
+            
         pwd_hash = Utilisateur.hacher_mot_de_passe(password)
-        success = self._user_repo.creer_utilisateur(username, email, pwd_hash)
+        
+        # Le premier utilisateur inscrit devient admin automatiquement
+        total_users = len(self._user_repo.obtenir_classement())
+        role = "admin" if total_users == 0 else "participant"
+        
+        success = self._user_repo.creer_utilisateur(username, email, pwd_hash, role, statut, experience)
         
         if not success:
             return {"succes": False, "message": "Email ou nom d'utilisateur déjà utilisé."}

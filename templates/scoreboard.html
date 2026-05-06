@@ -121,6 +121,8 @@
       <tr>
         <th style="width:60px;">#</th>
         <th>Joueur</th>
+        <th>Statut</th>
+        <th>Niveau</th>
         <th class="text-end">Défis résolus</th>
         <th class="text-end">Score</th>
       </tr>
@@ -148,6 +150,16 @@
             <span>{{ j.nom }}</span>
             {% if j.est_moi %}<span class="you-badge">VOUS</span>{% endif %}
           </div>
+        </td>
+
+        <!-- Statut (OOP Polymorphism) -->
+        <td>
+          <span style="color:{{ j.statut_couleur }}; font-size:0.8rem;"><i class="bi bi-person-badge me-1"></i>{{ j.statut_nom }}</span>
+        </td>
+
+        <!-- Expérience -->
+        <td>
+          <span style="color:var(--cyan); font-size:0.8rem;"><i class="bi bi-lightning-charge me-1"></i>{{ j.experience }}</span>
         </td>
 
         <!-- Solved count -->

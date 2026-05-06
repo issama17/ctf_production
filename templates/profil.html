@@ -30,7 +30,15 @@
     <h1 class="font-mono text-green glow mb-0" style="font-size:2rem;">
       {{ current_user.nom_utilisateur }}
     </h1>
-    <small class="text-dim font-mono">{{ current_user.email }}</small>
+    <small class="text-dim font-mono d-block mb-2">{{ current_user.email }}</small>
+    <div class="d-flex gap-2">
+      <span class="badge" style="background:rgba(255,255,255,.05); border:1px solid {{ current_user.statut_couleur }}; color:{{ current_user.statut_couleur }}; font-family:var(--mono); font-size:.75rem;">
+        <i class="bi bi-person-badge me-1"></i>{{ current_user.statut_nom }}
+      </span>
+      <span class="badge" style="background:rgba(0,230,118,.1); border:1px solid var(--green); color:var(--green); font-family:var(--mono); font-size:.75rem;">
+        <i class="bi bi-lightning-charge me-1"></i>{{ current_user.experience }}
+      </span>
+    </div>
   </div>
 
   <!-- Bouton paramètres -->

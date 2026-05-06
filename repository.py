@@ -9,10 +9,10 @@ class UtilisateurRepository:
     """
     Gère les opérations de base de données pour les Utilisateurs.
     """
-    def creer_utilisateur(self, username: str, email: str, pwd_hash: str, role: str = "participant") -> bool:
+    def creer_utilisateur(self, username: str, email: str, pwd_hash: str, role: str = "participant", statut: str = "Étudiant", experience: str = "Débutant") -> bool:
         """Crée un nouvel utilisateur."""
         try:
-            u = UserModele(username=username, email=email, password_hash=pwd_hash, role=role)
+            u = UserModele(username=username, email=email, password_hash=pwd_hash, role=role, statut=statut, experience=experience)
             db.session.add(u)
             db.session.commit()
             return True
