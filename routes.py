@@ -152,6 +152,18 @@ def register_routes(app, service_auth, service_ctf, user_repo):
         )
         return jsonify(res), res["code"]
 
+    @app.route("/debug-env")
+    def debug_env():
+        cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME", "")
+        api_key = os.getenv("CLOUDINARY_API_KEY", "")
+        api_secret = os.getenv("CLOUDINARY_API_SECRET", "")
+        return jsonify({
+            "cloud_name": f"{cloud_name[:3]}... (len: {len(cloud_name)})",
+            "api_key": f"{api_key[:3]}... (len: {len(api_key)})",
+            "api_secret": f"{api_secret[:3]}... (len: {len(api_secret)})",
+            "env_keys": list(os.environ.keys())
+        })
+
     @app.route("/telecharger/<nom_fichier>")
     @login_required
     def telecharger(nom_fichier):
