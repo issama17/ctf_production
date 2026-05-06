@@ -76,26 +76,29 @@ def create_app():
         # Patch automatique de la base de données pour le déploiement sur Railway (PostgreSQL / SQLite)
         try:
             from sqlalchemy import text
-            with db.engine.connect() as conn:
-                # 1. Renommer 'filiere' en 'statut' s'il existe
-                try: 
+            # 1. Renommer 'filiere' en 'statut' s'il existe
+            try:
+                with db.engine.connect() as conn:
                     conn.execute(text("ALTER TABLE users RENAME COLUMN filiere TO statut"))
-                except Exception: 
-                    pass
-                
-                # 2. Ajouter 'statut' s'il n'existe pas du tout
-                try: 
+                    conn.commit()
+            except Exception: 
+                pass
+            
+            # 2. Ajouter 'statut' s'il n'existe pas du tout
+            try: 
+                with db.engine.connect() as conn:
                     conn.execute(text("ALTER TABLE users ADD COLUMN statut VARCHAR(64) DEFAULT 'Étudiant'"))
-                except Exception: 
-                    pass
-                    
-                # 3. Ajouter 'experience' s'il n'existe pas
-                try: 
+                    conn.commit()
+            except Exception: 
+                pass
+                
+            # 3. Ajouter 'experience' s'il n'existe pas
+            try: 
+                with db.engine.connect() as conn:
                     conn.execute(text("ALTER TABLE users ADD COLUMN experience VARCHAR(32) DEFAULT 'Débutant'"))
-                except Exception: 
-                    pass
-                    
-                conn.commit()
+                    conn.commit()
+            except Exception: 
+                pass
         except Exception as e:
             logging.getLogger("db_patch").error(f"Erreur lors de la migration DB: {e}")
 
