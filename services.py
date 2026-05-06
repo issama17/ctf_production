@@ -1,9 +1,12 @@
 """
 Couche Logique Métier (Services)
+Intègre le Design Pattern Observer pour les notifications et les logs.
 """
 import logging
-from models import Utilisateur, UsineUtilisateur, Defi
+from abc import ABC, abstractmethod
+from models import Utilisateur, UsineUtilisateur, Defi, ContexteDefi
 from repository import UtilisateurRepository, DefiRepository
+from exceptions import DefiBloqueException, DefiDejaResoluException, FlagIncorrectException
 
 class ServiceAuth:
     """Service pour l'authentification et l'inscription."""
@@ -44,13 +47,50 @@ class ServiceAuth:
         return UsineUtilisateur.creer(row) if row else None
 
 
+# ══════════════════════════════════════════════════════
+#  PATRON OBSERVER : SYSTEME DE NOTIFICATIONS
+# ══════════════════════════════════════════════════════
+
+class ObservateurCTF(ABC):
+    @abstractmethod
+    def notifier(self, evenement: str, user_id: int, defi: Defi, data: dict):
+        pass
+
+class AuditLogObservateur(ObservateurCTF):
+    def __init__(self):
+        self.logger = logging.getLogger("AuditCTF")
+    
+    def notifier(self, evenement: str, user_id: int, defi: Defi, data: dict):
+        if evenement == "FLAG_VALIDE":
+            points = data.get('points', 0)
+            self.logger.info(f"[AUDIT] Utilisateur {user_id} a résolu {defi.id} (+{points} pts) !")
+        elif evenement == "DEFI_BLOQUE":
+            self.logger.warning(f"[AUDIT ALERTE] Utilisateur {user_id} a été BLOQUÉ sur {defi.id} (Trop de tentatives) !")
+
+class BadgeObservateur(ObservateurCTF):
+    def __init__(self):
+        self.logger = logging.getLogger("BadgeSystem")
+        
+    def notifier(self, evenement: str, user_id: int, defi: Defi, data: dict):
+        if evenement == "FLAG_VALIDE" and defi.points >= 300:
+            self.logger.info(f"[BADGE] Utilisateur {user_id} a débloqué le badge : EXTERMINATEUR DE DEFIS !")
+
+
 class ServiceCTF:
     """Service pour la gestion des défis CTF."""
     def __init__(self, challenge_repo: DefiRepository, user_repo: UtilisateurRepository):
         self._challenge_repo = challenge_repo
         self._user_repo = user_repo
         self._defis = {}
+        self._observateurs = []
         self._logger = logging.getLogger(self.__class__.__name__)
+
+    def attacher_observateur(self, obs: ObservateurCTF):
+        self._observateurs.append(obs)
+
+    def notifier_tous(self, evenement: str, user_id: int, defi: Defi, data: dict):
+        for obs in self._observateurs:
+            obs.notifier(evenement, user_id, defi, data)
 
     def enregistrer_defi(self, defi: Defi) -> None:
         self._defis[defi.id] = defi
@@ -89,26 +129,37 @@ class ServiceCTF:
         if not defi:
             return {"succes": False, "message": "Défi introuvable.", "code": 404}
             
-        if self._challenge_repo.a_resolu(user_id, challenge_id):
-            return {"succes": True, "message": "Vous avez déjà résolu ce défi !", "points": 0, "deja_resolu": True, "code": 200}
-            
-        attempts = self._challenge_repo.obtenir_tentatives(user_id, challenge_id)
-        if attempts >= 10:
-            return {"succes": False, "message": "Trop de tentatives. Défi bloqué.", "code": 429}
+        resolu = self._challenge_repo.a_resolu(user_id, challenge_id)
+        tentatives_avant = self._challenge_repo.obtenir_tentatives(user_id, challenge_id)
 
-        attempts = self._challenge_repo.incrementer_tentatives(user_id, challenge_id)
-        
-        is_correct = defi.valider_flag(attempt)
-        self._challenge_repo.enregistrer_soumission(user_id, challenge_id, is_correct)
+        # Utilisation du patron State pour gérer la soumission
+        contexte = ContexteDefi(defi, tentatives_avant, resolu)
 
-        if is_correct:
-            self._user_repo.ajouter_score(user_id, defi.points)
-            return {"succes": True, "message": f"Félicitations ! +{defi.points} points !", "points": defi.points, "code": 200}
+        try:
+            est_correct = contexte.essayer_flag(attempt)
+        except DefiDejaResoluException as e:
+            return {"succes": True, "message": str(e), "points": 0, "deja_resolu": True, "code": 200}
+        except DefiBloqueException as e:
+            return {"succes": False, "message": str(e), "code": 429}
+
+        # Sauvegarde en BDD
+        nouvelles_tentatives = self._challenge_repo.incrementer_tentatives(user_id, challenge_id)
+        self._challenge_repo.enregistrer_soumission(user_id, challenge_id, est_correct)
+
+        if est_correct:
+            # Calcul des points selon le patron Strategy
+            points_gagnes = defi.calculer_recompense(tentatives_avant)
+            self._user_repo.ajouter_score(user_id, points_gagnes)
             
-        return {
-            "succes": False, 
-            "message": "Flag incorrect. Continuez à chercher...",
-            "indice": defi.obtenir_indice(attempts), 
-            "tentatives": attempts, 
-            "code": 200
-        }
+            # Notification Observer
+            self.notifier_tous("FLAG_VALIDE", user_id, defi, {"points": points_gagnes})
+            return {"succes": True, "message": f"Félicitations ! +{points_gagnes} points !", "points": points_gagnes, "code": 200}
+        else:
+            if nouvelles_tentatives >= 10:
+                self.notifier_tous("DEFI_BLOQUE", user_id, defi, {})
+                
+            raise FlagIncorrectException(
+                message="Flag incorrect. Continuez à chercher...",
+                tentatives=nouvelles_tentatives,
+                indice=defi.obtenir_indice(nouvelles_tentatives)
+            )

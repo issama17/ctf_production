@@ -86,6 +86,9 @@
     <a href="/" class="nav-link-ctf"><i class="bi bi-grid me-1"></i>Défis</a>
     <a href="/profil" class="nav-link-ctf"><i class="bi bi-person me-1"></i>Profil</a>
     <a href="/scoreboard" class="nav-link-ctf"><i class="bi bi-trophy me-1"></i>Scoreboard</a>
+    {% if current_user.obtenir_role() == 'admin' %}
+    <a href="/admin" class="nav-link-ctf text-warning"><i class="bi bi-shield-lock me-1"></i>Admin</a>
+    {% endif %}
     {% endif %}
   </div>
 

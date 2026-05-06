@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block titre %}CTF_LAB — Administration{% endblock %}
+
+{% block contenu %}
+<div class="d-flex align-items-center gap-3 mb-4">
+  <div>
+    <p class="font-mono text-dim mb-0" style="font-size:.75rem;">// PANNEAU DE CONTRÔLE</p>
+    <h1 class="font-mono text-yellow mb-0" style="font-size:1.6rem;"><i class="bi bi-shield-lock me-2"></i>Administration</h1>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-md-6">
+    <div class="ctf-card p-4 text-center">
+      <h3 class="text-green mb-0">{{ stats.total_users }}</h3>
+      <p class="text-dim font-mono mb-0" style="font-size:.8rem;">Utilisateurs Inscrits</p>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="ctf-card p-4 text-center">
+      <h3 class="text-yellow mb-0">{{ stats.top_score }} pts</h3>
+      <p class="text-dim font-mono mb-0" style="font-size:.8rem;">Meilleur Score Actuel</p>
+    </div>
+  </div>
+</div>
+
+<div class="ctf-card p-4">
+  <h5 class="text-green mb-4 font-mono"><i class="bi bi-people-fill me-2"></i>Gestion des Joueurs</h5>
+  <div class="table-responsive">
+    <table class="table table-dark table-hover font-mono align-middle" style="font-size:.85rem;">
+      <thead>
+        <tr class="text-dim">
+          <th>ID</th>
+          <th>Joueur</th>
+          <th>Email</th>
+          <th>Score</th>
+          <th>Rôle</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in utilisateurs %}
+        <tr>
+          <td>#{{ u.id }}</td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              {% if u.profile_pic %}
+                <img src="{{ u.profile_pic }}" width="24" height="24" class="rounded-circle border border-secondary" style="object-fit:cover;">
+              {% else %}
+                <i class="bi bi-person-circle fs-5 text-secondary"></i>
+              {% endif %}
+              <span class="{% if u.role == 'admin' %}text-yellow{% endif %}">{{ u.username }}</span>
+            </div>
+          </td>
+          <td class="text-dim">{{ u.email }}</td>
+          <td class="text-green">{{ u.score }}</td>
+          <td>
+            {% if u.role == 'admin' %}
+              <span class="badge bg-warning text-dark">Admin</span>
+            {% else %}
+              <span class="badge bg-secondary">Participant</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="text-center text-dim py-4">Aucun utilisateur trouvé.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

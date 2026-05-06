@@ -1,12 +1,14 @@
 """
 Modèles de domaine et de données pour la plateforme CTF.
-Respecte les principes de la POO avec encapsulation et abstraction.
+Intègre les Design Patterns Strategy et State pour une architecture POO avancée.
 """
 from abc import ABC, abstractmethod
 from datetime import datetime
 import hashlib
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
+
+from exceptions import DefiBloqueException, DefiDejaResoluException
 
 # Initialisation de SQLAlchemy
 db = SQLAlchemy()
@@ -16,11 +18,7 @@ db = SQLAlchemy()
 # ══════════════════════════════════════════════════════
 
 class UserModele(db.Model):
-    """
-    Modèle SQLAlchemy pour la table des utilisateurs.
-    """
     __tablename__ = "users"
-    
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
     email = db.Column(db.String(255), unique=True, nullable=False)
@@ -34,11 +32,7 @@ class UserModele(db.Model):
     attempts = db.relationship("AttemptModele", backref="user", lazy=True)
 
 class SubmissionModele(db.Model):
-    """
-    Modèle SQLAlchemy pour les soumissions réussies.
-    """
     __tablename__ = "submissions"
-    
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     challenge_id = db.Column(db.String(64), nullable=False)
@@ -46,11 +40,7 @@ class SubmissionModele(db.Model):
     submission_date = db.Column(db.String(64), default=lambda: datetime.utcnow().isoformat())
 
 class AttemptModele(db.Model):
-    """
-    Modèle SQLAlchemy pour suivre les tentatives par utilisateur et par défi.
-    """
     __tablename__ = "attempts"
-    
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     challenge_id = db.Column(db.String(64), nullable=False)
@@ -58,13 +48,31 @@ class AttemptModele(db.Model):
 
 
 # ══════════════════════════════════════════════════════
+#  PATRON STRATEGY : CALCULATEUR DE SCORE
+# ══════════════════════════════════════════════════════
+
+class CalculateurScore(ABC):
+    @abstractmethod
+    def calculer(self, points_base: int, tentatives: int) -> int:
+        pass
+
+class ScoreClassique(CalculateurScore):
+    """Donne toujours le nombre de points par défaut."""
+    def calculer(self, points_base: int, tentatives: int) -> int:
+        return points_base
+
+class ScoreDegressif(CalculateurScore):
+    """Diminue les points de 10% par tentative ratée (maximum 50% de perte)."""
+    def calculer(self, points_base: int, tentatives: int) -> int:
+        perte = min(tentatives * 0.10, 0.50)
+        return int(points_base * (1 - perte))
+
+
+# ══════════════════════════════════════════════════════
 #  MODÈLES DE DOMAINE (Couche Logique)
 # ══════════════════════════════════════════════════════
 
 class Utilisateur(UserMixin, ABC):
-    """
-    Classe de base abstraite représentant un utilisateur.
-    """
     def __init__(self, user_modele: UserModele):
         self._id = user_modele.id
         self._username = user_modele.username
@@ -75,36 +83,24 @@ class Utilisateur(UserMixin, ABC):
         self._profile_pic = user_modele.profile_pic
 
     @property
-    def id(self) -> int:
-        return self._id
-
+    def id(self) -> int: return self._id
     @property
-    def username(self) -> str:
-        return self._username
-
+    def username(self) -> str: return self._username
     @property
-    def email(self) -> str:
-        return self._email
-
+    def email(self) -> str: return self._email
     @property
-    def score(self) -> int:
-        return self._score
-
+    def score(self) -> int: return self._score
     @property
-    def profile_pic(self) -> str:
-        return self._profile_pic
+    def profile_pic(self) -> str: return self._profile_pic
 
     def get_id(self) -> str:
-        """Requis par Flask-Login."""
         return str(self.id)
 
     def verifier_mot_de_passe(self, password: str) -> bool:
-        """Vérifie si le mot de passe correspond au hash."""
         return self.hacher_mot_de_passe(password) == self._password_hash
 
     @staticmethod
     def hacher_mot_de_passe(password: str) -> str:
-        """Hache un mot de passe en utilisant SHA-256."""
         return hashlib.sha256(password.encode()).hexdigest()
 
     @abstractmethod
@@ -112,50 +108,40 @@ class Utilisateur(UserMixin, ABC):
         pass
 
 class Participant(Utilisateur):
-    """Classe concrète pour les participants."""
     def obtenir_role(self) -> str:
         return "participant"
 
 class Administrateur(Utilisateur):
-    """Classe concrète pour les administrateurs."""
     def obtenir_role(self) -> str:
         return "admin"
 
 class Defi(ABC):
-    """
-    Classe de base abstraite représentant un Défi CTF.
-    """
-    def __init__(self, identifiant: str, titre: str, description: str, points: int, difficulte: str, flag_hash: str):
+    def __init__(self, identifiant: str, titre: str, description: str, points: int, difficulte: str, flag_hash: str, calculateur_score: CalculateurScore = None):
         self._id = identifiant
         self._titre = titre
         self._description = description
         self._points = points
         self._difficulte = difficulte
         self._flag_hash = flag_hash
+        self._calculateur_score = calculateur_score or ScoreClassique()
 
     @property
-    def id(self) -> str:
-        return self._id
-    
+    def id(self) -> str: return self._id
     @property
-    def titre(self) -> str:
-        return self._titre
-    
+    def titre(self) -> str: return self._titre
     @property
-    def description(self) -> str:
-        return self._description
-    
+    def description(self) -> str: return self._description
     @property
-    def points(self) -> int:
-        return self._points
-    
+    def points(self) -> int: return self._points
     @property
-    def difficulte(self) -> str:
-        return self._difficulte
+    def difficulte(self) -> str: return self._difficulte
 
     def valider_flag(self, tentative: str) -> bool:
-        """Valide la tentative de flag."""
         return hashlib.sha256(tentative.strip().encode()).hexdigest() == self._flag_hash
+
+    def calculer_recompense(self, tentatives: int) -> int:
+        """Calcule les points selon le patron Strategy."""
+        return self._calculateur_score.calculer(self._points, tentatives)
 
     @abstractmethod
     def obtenir_indice(self, attempts_count: int) -> str:
@@ -166,9 +152,8 @@ class Defi(ABC):
         pass
 
 class DefiStegano(Defi):
-    """Classe concrète pour la Stéganographie."""
-    def __init__(self, identifiant: str, titre: str, description: str, points: int, difficulte: str, flag_hash: str, image_file: str, tool_used: str):
-        super().__init__(identifiant, titre, description, points, difficulte, flag_hash)
+    def __init__(self, identifiant: str, titre: str, description: str, points: int, difficulte: str, flag_hash: str, image_file: str, tool_used: str, calculateur_score: CalculateurScore = None):
+        super().__init__(identifiant, titre, description, points, difficulte, flag_hash, calculateur_score)
         self.__image_file = image_file
         self.__tool_used = tool_used
 
@@ -179,20 +164,14 @@ class DefiStegano(Defi):
 
     def en_dictionnaire(self) -> dict:
         return {
-            "id": self._id,
-            "titre": self._titre,
-            "description": self._description,
-            "points": self._points,
-            "difficulte": self._difficulte,
-            "type": "stegano",
-            "fichier": self.__image_file,
-            "outil": self.__tool_used
+            "id": self._id, "titre": self._titre, "description": self._description,
+            "points": self._points, "difficulte": self._difficulte,
+            "type": "stegano", "fichier": self.__image_file, "outil": self.__tool_used
         }
 
 class DefiCrypto(Defi):
-    """Classe concrète pour la Cryptographie."""
-    def __init__(self, identifiant: str, titre: str, description: str, points: int, difficulte: str, flag_hash: str, cipher_text: str, hints: list, crypto_category: str):
-        super().__init__(identifiant, titre, description, points, difficulte, flag_hash)
+    def __init__(self, identifiant: str, titre: str, description: str, points: int, difficulte: str, flag_hash: str, cipher_text: str, hints: list, crypto_category: str, calculateur_score: CalculateurScore = None):
+        super().__init__(identifiant, titre, description, points, difficulte, flag_hash, calculateur_score)
         self.__cipher_text = cipher_text
         self.__hints = hints
         self.__crypto_category = crypto_category
@@ -204,20 +183,64 @@ class DefiCrypto(Defi):
 
     def en_dictionnaire(self) -> dict:
         return {
-            "id": self._id,
-            "titre": self._titre,
-            "description": self._description,
-            "points": self._points,
-            "difficulte": self._difficulte,
-            "type": "crypto",
-            "texte_chiffre": self.__cipher_text,
-            "categorie_crypto": self.__crypto_category
+            "id": self._id, "titre": self._titre, "description": self._description,
+            "points": self._points, "difficulte": self._difficulte,
+            "type": "crypto", "texte_chiffre": self.__cipher_text, "categorie_crypto": self.__crypto_category
         }
 
 class UsineUtilisateur:
-    """Factory pour créer les objets Utilisateur."""
     @staticmethod
     def creer(user_modele: UserModele) -> Utilisateur:
         if user_modele.role == "admin":
             return Administrateur(user_modele)
         return Participant(user_modele)
+
+
+# ══════════════════════════════════════════════════════
+#  PATRON STATE : ETAT DE RESOLUTION DU DEFI
+# ══════════════════════════════════════════════════════
+
+class EtatDefi(ABC):
+    @abstractmethod
+    def soumettre(self, contexte, tentative: str) -> bool:
+        pass
+
+class EtatDisponible(EtatDefi):
+    def soumettre(self, contexte, tentative: str) -> bool:
+        if contexte.defi.valider_flag(tentative):
+            contexte.changer_etat(EtatResolu())
+            return True
+        else:
+            contexte.incrementer_tentatives()
+            if contexte.tentatives >= 10:
+                contexte.changer_etat(EtatBloque())
+            return False
+
+class EtatBloque(EtatDefi):
+    def soumettre(self, contexte, tentative: str) -> bool:
+        raise DefiBloqueException("Trop de tentatives. Ce défi est bloqué pour vous.")
+
+class EtatResolu(EtatDefi):
+    def soumettre(self, contexte, tentative: str) -> bool:
+        raise DefiDejaResoluException("Vous avez déjà résolu ce défi !")
+
+class ContexteDefi:
+    """Gère le contexte d'un défi pour un utilisateur spécifique selon le patron State."""
+    def __init__(self, defi: Defi, tentatives: int, resolu: bool):
+        self.defi = defi
+        self.tentatives = tentatives
+        if resolu:
+            self.etat = EtatResolu()
+        elif tentatives >= 10:
+            self.etat = EtatBloque()
+        else:
+            self.etat = EtatDisponible()
+
+    def changer_etat(self, nouvel_etat: EtatDefi):
+        self.etat = nouvel_etat
+
+    def incrementer_tentatives(self):
+        self.tentatives += 1
+
+    def essayer_flag(self, tentative: str) -> bool:
+        return self.etat.soumettre(self, tentative)

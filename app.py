@@ -9,9 +9,9 @@ import cloudinary
 from flask import Flask
 from flask_login import LoginManager
 
-from models import db, DefiStegano, DefiCrypto
+from models import db, DefiStegano, DefiCrypto, ScoreClassique, ScoreDegressif
 from repository import UtilisateurRepository, DefiRepository
-from services import ServiceAuth, ServiceCTF
+from services import ServiceAuth, ServiceCTF, AuditLogObservateur, BadgeObservateur
 from routes import register_routes
 
 def configurer_cloudinary():
@@ -50,6 +50,10 @@ def create_app():
     service_auth = ServiceAuth(user_repo, url_base)
     service_ctf = ServiceCTF(challenge_repo, user_repo)
 
+    # Attacher les observateurs (Patron Observer)
+    service_ctf.attacher_observateur(AuditLogObservateur())
+    service_ctf.attacher_observateur(BadgeObservateur())
+
     _initialiser_defis(service_ctf)
 
     lm = LoginManager()
@@ -72,6 +76,7 @@ def create_app():
     return app
 
 def _initialiser_defis(service_ctf: ServiceCTF):
+    # Ce défi utilise le ScoreClassique par défaut (pas de perte de points)
     service_ctf.enregistrer_defi(DefiStegano(
         identifiant="stegano_01",
         titre="Ombres Numériques",
@@ -85,9 +90,11 @@ def _initialiser_defis(service_ctf: ServiceCTF):
         difficulte="Moyen",
         flag_hash="8d5b82e063fabdcaeda624e1c207319982c3b47d8c13f232472a8225816fdf6a",
         image_file="image_piege.jpg", 
-        tool_used="steghide"
+        tool_used="steghide",
+        calculateur_score=ScoreDegressif()
     ))
 
+    # Ce défi utilise le ScoreDegressif (10% de pénalité par erreur)
     service_ctf.enregistrer_defi(DefiCrypto(
         identifiant="crypto_01",
         titre="César et la Légion",
@@ -95,18 +102,20 @@ def _initialiser_defis(service_ctf: ServiceCTF):
             "Un général a intercepté ce message ennemi. "
             "Il sait que le chiffrement utilisé est très ancien — "
             "une simple rotation de l'alphabet. "
-            "Déchiffrez le message et soumettez le flag au format <code>CTF{...}</code>."
+            "Déchiffrez le message et soumettez le flag au format <code>CTF{...}</code>. "
+            "<br><span class='text-warning'><i class='bi bi-exclamation-triangle'></i> Ce défi utilise un score dégressif ! Chaque tentative ratée coûte des points.</span>"
         ),
         points=100, 
         difficulte="Facile",
-        flag_hash="1f72750f7aeb55383037ec1a768bc33c956eb8e27a2707940a53803cb2381d84",
+        flag_hash="8e55004368f4afe9e8789e11a00db2fa143f05623dc222846f0de1b55d918aa5",
         cipher_text="PGS{prfne_qrpbqr_irav_ivqv_ivpv}",
         hints=[
             "Ce chiffrement substitue chaque lettre par une autre décalée d'un nombre fixe de positions.",
             "Le chiffre de César utilise un décalage constant. Essayez tous les décalages de 1 à 25.",
             "Le décalage utilisé ici est 13 (ROT13). Appliquez ROT13 à chaque lettre du texte chiffré.",
         ],
-        crypto_category="Chiffrement par substitution / César"
+        crypto_category="Chiffrement par substitution / César",
+        calculateur_score=ScoreDegressif()
     ))
 
     xor_hex = "".join(f"{b ^ 0x42:02x}" for b in base64.b64encode(b"CTF{x0r_and_b4se64_master}"))
@@ -117,7 +126,8 @@ def _initialiser_defis(service_ctf: ServiceCTF):
             "Un agent a encodé son message en deux étapes : "
             "d'abord un encodage Base64, puis un XOR avec la clé <code>0x42</code>. "
             "Le résultat a ensuite été converti en hexadécimal. "
-            "Retrouvez le flag original. Format : <code>CTF{...}</code>."
+            "Retrouvez le flag original. Format : <code>CTF{...}</code>. "
+            "<br><span class='text-warning'><i class='bi bi-exclamation-triangle'></i> Ce défi utilise un score dégressif !</span>"
         ),
         points=200, 
         difficulte="Moyen",
@@ -128,7 +138,8 @@ def _initialiser_defis(service_ctf: ServiceCTF):
             "Chaque octet a été XORé avec 0x42. Appliquez XOR(0x42) à chaque octet pour inverser l'opération.",
             "Après le XOR vous obtenez une chaîne Base64. Décodez-la pour obtenir le flag final.",
         ],
-        crypto_category="XOR / Base64"
+        crypto_category="XOR / Base64",
+        calculateur_score=ScoreDegressif()
     ))
 
     service_ctf.enregistrer_defi(DefiCrypto(
@@ -143,14 +154,15 @@ def _initialiser_defis(service_ctf: ServiceCTF):
         ),
         points=300, 
         difficulte="Difficile",
-        flag_hash="b39aa6ea303b098db050c8cd97cd5101567acc0fd8d6289067e016133daf5d3c",
+        flag_hash="c5521b3eb3ee62692fe991a5dc2b6803cb15466cb915b4fd47ec7843639b9370",
         cipher_text="n = 3233  |  e = 17  |  c = 2790",
         hints=[
             "n = 3233 est petit. Trouvez p et q tels que p x q = n en essayant des diviseurs.",
             "p = 61 et q = 53. Calculez phi(n) = (p-1)(q-1) = 3120, puis trouvez d tel que e*d = 1 (mod phi(n)).",
             "d = 2753. Déchiffrez : m = c^d mod n = 2201^2753 mod 3233. Le flag est CTF{m}.",
         ],
-        crypto_category="RSA"
+        crypto_category="RSA",
+        calculateur_score=ScoreDegressif()
     ))
 
 class ApplicationCTF:

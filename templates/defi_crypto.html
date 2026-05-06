@@ -164,9 +164,9 @@
         <input type="text" id="flag-input" class="flag-input flex-grow-1"
                placeholder="CTF{v0tre_fl4g_ici}"
                autocomplete="off" spellcheck="false"
-               {% if defi.bloque %}disabled{% endif %} />
+               {% if defi.bloque or deja_resolu %}disabled{% endif %} />
         <button id="btn-submit" class="btn-submit"
-                {% if defi.bloque %}disabled{% endif %}>
+                {% if defi.bloque or deja_resolu %}disabled{% endif %}>
           <i class="bi bi-send me-1"></i>Valider
         </button>
       </div>

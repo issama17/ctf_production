@@ -5,9 +5,12 @@ import os
 import logging
 import cloudinary.uploader
 from werkzeug.utils import secure_filename
+from werkzeug.exceptions import Forbidden
 
 from flask import render_template, request, jsonify, send_from_directory, redirect, url_for, flash, current_app
 from flask_login import login_user, logout_user, login_required, current_user
+
+from exceptions import FlagIncorrectException
 
 def register_routes(app, service_auth, service_ctf, user_repo):
     
@@ -145,12 +148,21 @@ def register_routes(app, service_auth, service_ctf, user_repo):
     @login_required
     def api_soumettre():
         data = request.get_json(force=True)
-        res = service_ctf.soumettre_flag(
-            data.get("id", ""), 
-            data.get("flag", ""), 
-            current_user.id
-        )
-        return jsonify(res), res["code"]
+        try:
+            res = service_ctf.soumettre_flag(
+                data.get("id", ""), 
+                data.get("flag", ""), 
+                current_user.id
+            )
+            return jsonify(res), res.get("code", 200)
+        except FlagIncorrectException as e:
+            # Traitement explicite de notre exception personnalisée
+            return jsonify({
+                "succes": False,
+                "message": str(e),
+                "tentatives": e.tentatives,
+                "indice": e.indice
+            }), 200
 
     @app.route("/telecharger/<nom_fichier>")
     @login_required
@@ -161,3 +173,18 @@ def register_routes(app, service_auth, service_ctf, user_repo):
             
         dossier = os.path.join(current_app.root_path, "static", "images")
         return send_from_directory(dossier, safe_filename, as_attachment=True)
+
+    @app.route("/admin")
+    @login_required
+    def admin_dashboard():
+        """Route d'administration. Démontre l'utilisation du polymorphisme des Rôles."""
+        if current_user.obtenir_role() != "admin":
+            flash("Accès refusé. Vous devez être administrateur.", "danger")
+            return redirect(url_for("index"))
+            
+        utilisateurs = user_repo.obtenir_classement()
+        stats = {
+            "total_users": len(utilisateurs),
+            "top_score": utilisateurs[0].score if utilisateurs else 0
+        }
+        return render_template("admin.html", utilisateurs=utilisateurs, stats=stats)
