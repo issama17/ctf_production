@@ -1,21 +1,18 @@
 """
-Data Access Layer (Repositories)
-Abstracts database queries behind clean interfaces.
+Couche d'Accès aux Données (Repositories)
+Abstrait les requêtes de base de données.
 """
-from models import db, UserModel, SubmissionModel, AttemptModel
+from models import db, UserModele, SubmissionModele, AttemptModele
 from typing import Optional, List
 
-class UserRepository:
+class UtilisateurRepository:
     """
-    Handles database operations for Users.
+    Gère les opérations de base de données pour les Utilisateurs.
     """
-    def create_user(self, username: str, email: str, pwd_hash: str, role: str = "participant") -> bool:
-        """
-        + create_user(username, email, pwd_hash, role) -> bool
-        Creates a new user in the database.
-        """
+    def creer_utilisateur(self, username: str, email: str, pwd_hash: str, role: str = "participant") -> bool:
+        """Crée un nouvel utilisateur."""
         try:
-            u = UserModel(username=username, email=email, password_hash=pwd_hash, role=role)
+            u = UserModele(username=username, email=email, password_hash=pwd_hash, role=role)
             db.session.add(u)
             db.session.commit()
             return True
@@ -23,93 +20,57 @@ class UserRepository:
             db.session.rollback()
             return False
 
-    def get_by_email(self, email: str) -> Optional[UserModel]:
-        """
-        + get_by_email(email) -> Optional[UserModel]
-        """
-        return UserModel.query.filter_by(email=email).first()
+    def obtenir_par_email(self, email: str) -> Optional[UserModele]:
+        return UserModele.query.filter_by(email=email).first()
 
-    def get_by_id(self, uid: int) -> Optional[UserModel]:
-        """
-        + get_by_id(uid) -> Optional[UserModel]
-        """
-        return db.session.get(UserModel, uid)
+    def obtenir_par_id(self, uid: int) -> Optional[UserModele]:
+        return db.session.get(UserModele, uid)
 
-    def add_score(self, uid: int, points: int) -> None:
-        """
-        + add_score(uid, points) -> None
-        """
-        u = self.get_by_id(uid)
+    def ajouter_score(self, uid: int, points: int) -> None:
+        u = self.obtenir_par_id(uid)
         if u:
             u.score = (u.score or 0) + points
             db.session.commit()
 
-    def update_profile_pic(self, uid: int, url: str) -> None:
-        """
-        + update_profile_pic(uid, url) -> None
-        """
-        u = self.get_by_id(uid)
+    def mettre_a_jour_photo(self, uid: int, url: str) -> None:
+        u = self.obtenir_par_id(uid)
         if u:
             u.profile_pic = url
             db.session.commit()
 
-    def get_scoreboard(self) -> List[UserModel]:
-        """
-        + get_scoreboard() -> List[UserModel]
-        Returns users ordered by score.
-        """
-        return UserModel.query.order_by(UserModel.score.desc()).all()
+    def obtenir_classement(self) -> List[UserModele]:
+        return UserModele.query.order_by(UserModele.score.desc()).all()
 
 
-class ChallengeRepository:
+class DefiRepository:
     """
-    Handles database operations for Challenge attempts and submissions.
+    Gère les opérations de base de données pour les défis et soumissions.
     """
-    def has_solved(self, uid: int, challenge_id: str) -> bool:
-        """
-        + has_solved(uid, challenge_id) -> bool
-        Checks if the user has already solved the challenge.
-        """
-        return SubmissionModel.query.filter_by(user_id=uid, challenge_id=challenge_id, success=True).first() is not None
+    def a_resolu(self, uid: int, challenge_id: str) -> bool:
+        return SubmissionModele.query.filter_by(user_id=uid, challenge_id=challenge_id, success=True).first() is not None
 
-    def record_submission(self, uid: int, challenge_id: str, success: bool) -> None:
-        """
-        + record_submission(uid, challenge_id, success) -> None
-        """
-        s = SubmissionModel(user_id=uid, challenge_id=challenge_id, success=success)
+    def enregistrer_soumission(self, uid: int, challenge_id: str, success: bool) -> None:
+        s = SubmissionModele(user_id=uid, challenge_id=challenge_id, success=success)
         db.session.add(s)
         db.session.commit()
 
-    def get_attempts(self, uid: int, challenge_id: str) -> int:
-        """
-        + get_attempts(uid, challenge_id) -> int
-        """
-        attempt = AttemptModel.query.filter_by(user_id=uid, challenge_id=challenge_id).first()
+    def obtenir_tentatives(self, uid: int, challenge_id: str) -> int:
+        attempt = AttemptModele.query.filter_by(user_id=uid, challenge_id=challenge_id).first()
         return attempt.attempts_count if attempt else 0
 
-    def increment_attempts(self, uid: int, challenge_id: str) -> int:
-        """
-        + increment_attempts(uid, challenge_id) -> int
-        Increments and returns the attempt count for a user on a specific challenge.
-        """
-        attempt = AttemptModel.query.filter_by(user_id=uid, challenge_id=challenge_id).first()
+    def incrementer_tentatives(self, uid: int, challenge_id: str) -> int:
+        attempt = AttemptModele.query.filter_by(user_id=uid, challenge_id=challenge_id).first()
         if not attempt:
-            attempt = AttemptModel(user_id=uid, challenge_id=challenge_id, attempts_count=1)
+            attempt = AttemptModele(user_id=uid, challenge_id=challenge_id, attempts_count=1)
             db.session.add(attempt)
         else:
             attempt.attempts_count += 1
         db.session.commit()
         return attempt.attempts_count
 
-    def get_submission_history(self, uid: int) -> List[dict]:
-        """
-        + get_submission_history(uid) -> List[dict]
-        """
-        rows = SubmissionModel.query.filter_by(user_id=uid).order_by(SubmissionModel.submission_date.desc()).limit(20).all()
+    def obtenir_historique(self, uid: int) -> List[dict]:
+        rows = SubmissionModele.query.filter_by(user_id=uid).order_by(SubmissionModele.submission_date.desc()).limit(20).all()
         return [{"challenge_id": r.challenge_id, "success": r.success, "date_soumis": r.submission_date} for r in rows]
 
-    def get_solved_count(self, uid: int) -> int:
-        """
-        + get_solved_count(uid) -> int
-        """
-        return SubmissionModel.query.filter_by(user_id=uid, success=True).count()
+    def obtenir_nombre_resolus(self, uid: int) -> int:
+        return SubmissionModele.query.filter_by(user_id=uid, success=True).count()

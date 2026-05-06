@@ -1,6 +1,5 @@
 """
-Presentation Layer (Routes)
-Flask routes containing the application endpoints.
+Couche de Présentation (Routes)
 """
 import os
 import logging
@@ -10,21 +9,17 @@ from werkzeug.utils import secure_filename
 from flask import render_template, request, jsonify, send_from_directory, redirect, url_for, flash, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 
-def register_routes(app, auth_service, ctf_service, user_repo):
-    """
-    + register_routes(app, auth_service, ctf_service, user_repo) -> None
-    Registers the main application routes directly on the app instance.
-    """
+def register_routes(app, service_auth, service_ctf, user_repo):
     
     ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
     
-    def allowed_file(filename: str) -> bool:
+    def fichier_autorise(filename: str) -> bool:
         return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
     @app.route("/")
     def index():
         uid = current_user.id if current_user.is_authenticated else None
-        defis = ctf_service.list_challenges(uid)
+        defis = service_ctf.lister_defis(uid)
         return render_template("index.html", defis=defis)
 
     @app.route("/inscription", methods=["GET", "POST"])
@@ -33,7 +28,7 @@ def register_routes(app, auth_service, ctf_service, user_repo):
             return redirect(url_for("index"))
             
         if request.method == "POST":
-            res = auth_service.register(
+            res = service_auth.inscrire(
                 request.form.get("nom", "").strip(),
                 request.form.get("email", "").strip().lower(),
                 request.form.get("mdp", ""),
@@ -44,20 +39,18 @@ def register_routes(app, auth_service, ctf_service, user_repo):
                 
         return render_template("inscription.html")
 
-
     @app.route("/login", methods=["GET", "POST"])
     def login():
         if current_user.is_authenticated:
             return redirect(url_for("index"))
             
         if request.method == "POST":
-            res = auth_service.login(
+            res = service_auth.connecter(
                 request.form.get("email", "").strip().lower(),
                 request.form.get("mdp", ""),
             )
             if res["succes"]:
                 login_user(res["utilisateur"], remember=True)
-                # Secure redirect to avoid open redirect vulnerabilities
                 next_page = request.args.get("next")
                 if next_page and not next_page.startswith('/'):
                     next_page = url_for("index")
@@ -76,8 +69,7 @@ def register_routes(app, auth_service, ctf_service, user_repo):
     @app.route("/profil")
     @login_required
     def profil():
-        # Requires ChallengeRepository for history
-        historique = ctf_service._challenge_repo.get_submission_history(current_user.id)
+        historique = service_ctf._challenge_repo.obtenir_historique(current_user.id)
         return render_template("profil.html", historique=historique)
 
     @app.route("/profil/parametres", methods=["GET", "POST"])
@@ -93,7 +85,7 @@ def register_routes(app, auth_service, ctf_service, user_repo):
                 flash("Aucun fichier sélectionné.", "danger")
                 return redirect(url_for("parametres_profil"))
 
-            if not allowed_file(fichier.filename):
+            if not fichier_autorise(fichier.filename):
                 flash("Format non supporté. Utilisez PNG, JPG, GIF ou WEBP.", "danger")
                 return redirect(url_for("parametres_profil"))
 
@@ -109,7 +101,7 @@ def register_routes(app, auth_service, ctf_service, user_repo):
                     resource_type="image",
                 )
                 url_photo = resultat.get("secure_url")
-                user_repo.update_profile_pic(current_user.id, url_photo)
+                user_repo.mettre_a_jour_photo(current_user.id, url_photo)
                 flash("Photo de profil mise à jour avec succès !", "success")
             except Exception as e:
                 logging.getLogger("upload").error(f"Cloudinary upload error: {e}")
@@ -117,17 +109,17 @@ def register_routes(app, auth_service, ctf_service, user_repo):
 
             return redirect(url_for("parametres_profil"))
 
-        user_row = user_repo.get_by_id(current_user.id)
+        user_row = user_repo.obtenir_par_id(current_user.id)
         photo_actuelle = user_row.profile_pic if user_row else None
         return render_template("parametres_profil.html", photo_actuelle=photo_actuelle)
 
     @app.route("/scoreboard")
     @login_required
     def scoreboard():
-        rows = user_repo.get_scoreboard()
+        rows = user_repo.obtenir_classement()
         joueurs = []
         for row in rows:
-            resolus = ctf_service._challenge_repo.get_solved_count(row.id)
+            resolus = service_ctf._challenge_repo.obtenir_nombre_resolus(row.id)
             joueurs.append({
                 "nom":          row.username,
                 "score":        row.score or 0,
@@ -140,7 +132,7 @@ def register_routes(app, auth_service, ctf_service, user_repo):
     @app.route("/defi/<identifiant>")
     @login_required
     def page_defi(identifiant):
-        d = ctf_service.get_challenge_view(identifiant, current_user.id)
+        d = service_ctf.obtenir_vue_defi(identifiant, current_user.id)
         if not d:
             return render_template("404.html"), 404
             
@@ -153,8 +145,7 @@ def register_routes(app, auth_service, ctf_service, user_repo):
     @login_required
     def api_soumettre():
         data = request.get_json(force=True)
-        # Implement Rate Limiting / Validation here if needed
-        res = ctf_service.submit_flag(
+        res = service_ctf.soumettre_flag(
             data.get("id", ""), 
             data.get("flag", ""), 
             current_user.id
@@ -164,10 +155,9 @@ def register_routes(app, auth_service, ctf_service, user_repo):
     @app.route("/telecharger/<nom_fichier>")
     @login_required
     def telecharger(nom_fichier):
-        # Security: Prevent directory traversal with secure_filename
         safe_filename = secure_filename(nom_fichier)
         if not safe_filename:
-            return "Invalid filename", 400
+            return "Nom de fichier invalide", 400
             
         dossier = os.path.join(current_app.root_path, "static", "images")
         return send_from_directory(dossier, safe_filename, as_attachment=True)
