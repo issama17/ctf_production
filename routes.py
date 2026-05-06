@@ -105,7 +105,7 @@ def register_routes(app, service_auth, service_ctf, user_repo):
                 flash("Photo de profil mise à jour avec succès !", "success")
             except Exception as e:
                 logging.getLogger("upload").error(f"Cloudinary upload error: {e}")
-                flash("Erreur lors de l'upload. Vérifiez vos clés Cloudinary.", "danger")
+                flash(f"Erreur d'upload : {str(e)}", "danger")
 
             return redirect(url_for("parametres_profil"))
 
