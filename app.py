@@ -99,14 +99,6 @@ def create_app():
                     conn.commit()
             except Exception: 
                 pass
-
-            # 4. Rendre abdlhak administrateur (patch DB)
-            try:
-                with db.engine.connect() as conn:
-                    conn.execute(text("UPDATE users SET role='admin' WHERE username='abdlhak'"))
-                    conn.commit()
-            except Exception:
-                pass
         except Exception as e:
             logging.getLogger("db_patch").error(f"Erreur lors de la migration DB: {e}")
 
