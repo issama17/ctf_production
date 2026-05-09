@@ -228,6 +228,57 @@ class DefiCrypto(Defi):
             "type": "crypto", "texte_chiffre": self.__cipher_text, "categorie_crypto": self.__crypto_category
         }
 
+class DefiWeb(Defi):
+    """
+    Défi de type Web / Forensique HTTP.
+    Le joueur analyse des artefacts réseau (logs, tokens JWT, configs)
+    pour reconstituer l'attaque et en extraire le flag.
+    """
+
+    def __init__(
+        self,
+        identifiant: str,
+        titre: str,
+        description: str,
+        points: int,
+        difficulte: str,
+        flag_hash: str,
+        web_category: str,
+        hints: list,
+        evidence_filename: str,
+        calculateur_score: CalculateurScore = None,
+    ):
+        super().__init__(identifiant, titre, description, points, difficulte, flag_hash, calculateur_score)
+        self.__web_category   = web_category
+        self.__hints          = hints
+        self.__evidence_filename = evidence_filename
+
+    @property
+    def evidence_filename(self) -> str:
+        return self.__evidence_filename
+
+    @property
+    def web_category(self) -> str:
+        return self.__web_category
+
+    def obtenir_indice(self, attempts_count: int) -> str:
+        if not self.__hints:
+            return ""
+        idx = min(attempts_count // 3, len(self.__hints) - 1)
+        return self.__hints[idx]
+
+    def en_dictionnaire(self) -> dict:
+        return {
+            "id":               self._id,
+            "titre":            self._titre,
+            "description":      self._description,
+            "points":           self._points,
+            "difficulte":       self._difficulte,
+            "type":             "web",
+            "categorie_web":    self.__web_category,
+            "evidence_file":    self.__evidence_filename,
+        }
+
 class UsineUtilisateur:
     @staticmethod
     def creer(user_modele: UserModele) -> Utilisateur:

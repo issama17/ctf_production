@@ -9,7 +9,7 @@ import cloudinary
 from flask import Flask
 from flask_login import LoginManager
 
-from models import db, DefiStegano, DefiCrypto, ScoreClassique, ScoreDegressif
+from models import db, DefiStegano, DefiCrypto, DefiWeb, ScoreClassique, ScoreDegressif
 from repository import UtilisateurRepository, DefiRepository
 from services import ServiceAuth, ServiceCTF, AuditLogObservateur, BadgeObservateur
 from routes import register_routes
@@ -192,6 +192,49 @@ def _initialiser_defis(service_ctf: ServiceCTF):
         ],
         crypto_category="RSA",
         calculateur_score=ScoreDegressif()
+    ))
+
+    service_ctf.enregistrer_defi(DefiWeb(
+        identifiant="web_01",
+        titre="NULLSIG — L'Algorithme Fantôme",
+        description=(
+            "Une alerte SOC signale un accès non autorisé à l'API interne de la société CorpVault. "
+            "L'attaquant a réussi à atteindre l'endpoint <code>/api/admin/flag</code> "
+            "sans connaître le secret JWT du serveur. "
+            "<br><br>"
+            "Votre mission : analyser le pack de preuves réseau fourni "
+            "(logs d'accès, requêtes capturées, fragment de configuration serveur) "
+            "et reconstituer la technique d'attaque utilisée. "
+            "Le flag se trouve dans la réponse HTTP finale capturée par le SOC. "
+            "<br><br>"
+            "<a href='/static/evidence/nullsig_evidence_pack.zip' download='nullsig_evidence_pack.zip' class='btn btn-sm btn-outline-info'>"
+            "<i class='bi bi-download'></i> Télécharger le pack de preuves</a>"
+            "<br><br>"
+            "<span class='text-warning'>"
+            "<i class='bi bi-exclamation-triangle'></i> "
+            "Ce défi utilise un score dégressif ! Chaque tentative ratée coûte des points."
+            "</span>"
+        ),
+        points=250,
+        difficulte="Moyen",
+        flag_hash="0ae102db73aed0c695e0e1fea835c051c3613497eb457aa353e3ba0d1ce22413",
+        web_category="JWT / Authentification / Analyse forensique HTTP",
+        evidence_filename="nullsig_evidence_pack.zip",
+        hints=[
+            "Commencez par le fichier access_log.txt. Repérez la séquence temporelle : "
+            "une première requête échoue (401), puis une seconde requête identique réussit (200). "
+            "Quelle est la différence entre les deux ?",
+
+            "Lisez server_config_fragment.txt. Le champ <code>allowed_algorithms</code> contient "
+            "une valeur très dangereuse en plus de HS256. Les JWT supportent un algorithme spécial "
+            "qui ne nécessite aucune signature.",
+
+            "L'attaquant a utilisé l'attaque 'alg:none'. Dans captured_request_02.txt, "
+            "le header JWT est <code>{\"alg\":\"none\",\"typ\":\"JWT\"}</code> et le payload "
+            "contient <code>\"role\":\"admin\"</code>. La signature est vide (le token se termine par un point). "
+            "Le flag est directement visible dans flag_response.txt.",
+        ],
+        calculateur_score=ScoreDegressif(),
     ))
 
 class ApplicationCTF:
