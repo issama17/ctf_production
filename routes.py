@@ -178,8 +178,12 @@ def register_routes(app, service_auth, service_ctf, user_repo):
         if not safe_filename:
             return "Nom de fichier invalide", 400
             
-        dossier = os.path.join(current_app.root_path, "static", "images")
-        return send_from_directory(dossier, safe_filename, as_attachment=True)
+        for sous_dossier in ["images", "evidence"]:
+            dossier = os.path.join(current_app.root_path, "static", sous_dossier)
+            if os.path.exists(os.path.join(dossier, safe_filename)):
+                return send_from_directory(dossier, safe_filename, as_attachment=True)
+                
+        return "Fichier non trouvé", 404
 
     @app.route("/admin")
     @login_required

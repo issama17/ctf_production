@@ -202,6 +202,7 @@
     </div>
 
     <!-- Téléchargement -->
+    {% if defi.fichier or defi.evidence_file %}
     <div class="dl-box mb-4">
       <div class="d-flex align-items-center gap-3 flex-wrap">
         <div>
@@ -209,16 +210,17 @@
             // FICHIER DU DÉFI
           </div>
           <div class="dl-filename">
-            <i class="bi bi-file-earmark-image me-2"></i>{{ defi.fichier }}
+            <i class="bi bi-file-earmark-image me-2"></i>{{ defi.fichier or defi.evidence_file }}
           </div>
         </div>
-        <a href="/telecharger/{{ defi.fichier }}"
+        <a href="/telecharger/{{ defi.fichier or defi.evidence_file }}"
            class="btn-ctf text-decoration-none ms-auto"
            download>
           <i class="bi bi-download me-2"></i>Télécharger
         </a>
       </div>
     </div>
+    {% endif %}
 
     <!-- ── FORMULAIRE FLAG ── -->
     <div class="ctf-card p-4 mb-3">
