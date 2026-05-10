@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js@1.12.0/src/toastify.min.css"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/splitting@1.0.6/dist/splitting.min.css"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='animations.css') }}"/>
   <style>
     :root {
       --bg: #03060b; --bg2: #080c14; --card: #0b101a; --border: #162235;
@@ -207,6 +208,7 @@
     background: { color: "transparent" }
   });
 </script>
+<script src="{{ url_for('static', filename='animations.js') }}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>
