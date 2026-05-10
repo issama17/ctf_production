@@ -238,6 +238,7 @@ def _initialiser_defis(service_ctf: ServiceCTF):
         identifiant="sqli-login-bypass",
         titre="SQL Injection — Login Bypass",
         description=(
+            "<div class='text-center mb-4'><img src='https://www.est.uae.ma/assets/img/logo.png' style='height:80px; filter: drop-shadow(0 0 10px rgba(1,62,116,0.3));'></div>"
             "Une vulnérabilité SQL Injection a été détectée sur le portail "
             "académique de l'EST Tétouan. Le système d'authentification construit ses "
             "requêtes SQL par concaténation de chaînes — une erreur fatale.<br><br>"
