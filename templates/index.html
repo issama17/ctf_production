@@ -19,6 +19,7 @@
 .cat-stegano { background:rgba(0,255,136,.08); border:1px solid rgba(0,255,136,.2); color:var(--green); }
 .cat-crypto  { background:rgba(0,207,255,.08); border:1px solid rgba(0,207,255,.2); color:var(--cyan); }
 .cat-web     { background:rgba(255,102,178,.08); border:1px solid rgba(255,102,178,.2); color:var(--pink); }
+.cat-reverse { background:rgba(255,196,0,.08); border:1px solid rgba(255,196,0,.2); color:var(--yellow); }
 
 /* Category filter tabs */
 .filter-tab {
@@ -169,6 +170,7 @@
     <button class="filter-tab" onclick="filtrer('stegano', this)"><i class="bi bi-eye-slash me-1"></i>Stégano</button>
     <button class="filter-tab" onclick="filtrer('crypto', this)"><i class="bi bi-lock me-1"></i>Crypto</button>
     <button class="filter-tab" onclick="filtrer('web', this)"><i class="bi bi-globe me-1"></i>Web</button>
+    <button class="filter-tab" onclick="filtrer('reverse', this)"><i class="bi bi-cpu me-1"></i>Reverse</button>
   </div>
 </div>
 
@@ -180,17 +182,19 @@
     <a href="/defi/{{ d.id }}" class="lab-card-link">
       <div class="ctf-card p-4 h-100">
         <div class="d-flex align-items-start gap-3 mb-3">
-          <div class="category-icon {% if d.type == 'crypto' %}cat-crypto{% elif d.type == 'web' %}cat-web{% else %}cat-stegano{% endif %}">
+          <div class="category-icon {% if d.type == 'crypto' %}cat-crypto{% elif d.type == 'web' %}cat-web{% elif d.type == 'reverse' %}cat-reverse{% else %}cat-stegano{% endif %}">
             {% if d.type == 'crypto' %}
               <i class="bi bi-lock-fill"></i>
             {% elif d.type == 'web' %}
               <i class="bi bi-globe"></i>
+            {% elif d.type == 'reverse' %}
+              <i class="bi bi-cpu-fill"></i>
             {% else %}
               <i class="bi bi-eye-slash-fill"></i>
             {% endif %}
           </div>
           <div>
-            <h5 class="mb-1 font-mono {% if d.type == 'crypto' %}text-cyan{% elif d.type == 'web' %}text-pink{% else %}text-green{% endif %}" style="font-size:1rem;">
+            <h5 class="mb-1 font-mono {% if d.type == 'crypto' %}text-cyan{% elif d.type == 'web' %}text-pink{% elif d.type == 'reverse' %}text-yellow{% else %}text-green{% endif %}" style="font-size:1rem;">
               {{ d.titre }}
             </h5>
             <span class="badge-diff diff-{{ d.difficulte|lower }}">{{ d.difficulte }}</span>
@@ -202,6 +206,8 @@
             Déchiffrez le message en utilisant vos connaissances en cryptographie.
           {% elif d.type == 'web' %}
             Analysez les artefacts et trouvez la vulnérabilité web.
+          {% elif d.type == 'reverse' %}
+            Analysez un binaire et découvrez ses secrets internes.
           {% else %}
             Analysez une image et extrayez le message dissimulé dans ses données.
           {% endif %}
@@ -214,8 +220,8 @@
               <i class="bi bi-check-circle-fill me-1"></i>Résolu
             </span>
           {% else %}
-            <span class="font-mono {% if d.type == 'crypto' %}text-cyan{% elif d.type == 'web' %}text-pink{% else %}text-green{% endif %}" style="font-size:.8rem;">
-              {% if d.type == 'crypto' %}Cryptographie{% elif d.type == 'web' %}Web{% else %}Stéganographie{% endif %}
+            <span class="font-mono {% if d.type == 'crypto' %}text-cyan{% elif d.type == 'web' %}text-pink{% elif d.type == 'reverse' %}text-yellow{% else %}text-green{% endif %}" style="font-size:.8rem;">
+              {% if d.type == 'crypto' %}Cryptographie{% elif d.type == 'web' %}Web{% elif d.type == 'reverse' %}Reverse Engineering{% else %}Stéganographie{% endif %}
               <i class="bi bi-arrow-right-short"></i>
             </span>
           {% endif %}
