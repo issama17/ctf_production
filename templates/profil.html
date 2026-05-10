@@ -59,7 +59,7 @@
   <div class="col-md-4">
     <div class="stat-box">
       <div class="stat-val text-green mb-1 stat-value">
-        {{ historique | selectattr('succes', 'equalto', true) | list | length }}
+        {{ historique | selectattr('success', 'equalto', true) | list | length }}
       </div>
       <div class="text-dim font-mono" style="font-size:.8rem;">DÉFIS RÉSOLUS</div>
     </div>
@@ -80,9 +80,9 @@
     <div class="ctf-card p-4">
       <h6 class="font-mono text-cyan mb-3">Compétences</h6>
       <canvas id="radar-chart"
-        data-crypto="{{ historique | selectattr('type', 'equalto', 'crypto') | selectattr('succes', 'equalto', true) | list | length }}"
-        data-web="{{ historique | selectattr('type', 'equalto', 'web') | selectattr('succes', 'equalto', true) | list | length }}"
-        data-stegano="{{ historique | selectattr('type', 'equalto', 'stegano') | selectattr('succes', 'equalto', true) | list | length }}">
+        data-crypto="{{ historique | selectattr('type', 'equalto', 'crypto') | selectattr('success', 'equalto', true) | list | length }}"
+        data-web="{{ historique | selectattr('type', 'equalto', 'web') | selectattr('success', 'equalto', true) | list | length }}"
+        data-stegano="{{ historique | selectattr('type', 'equalto', 'stegano') | selectattr('success', 'equalto', true) | list | length }}">
       </canvas>
     </div>
   </div>
@@ -111,7 +111,7 @@
         <span class="text-dim" style="font-size:.75rem;">
           {{ h['date_soumis'][:16] if h['date_soumis'] else '' }}
         </span>
-        {% if h['succes'] %}
+        {% if h['success'] %}
           <span class="badge-ok"><i class="bi bi-check me-1"></i>FLAG VALIDÉ</span>
         {% else %}
           <span class="badge-ko"><i class="bi bi-x me-1"></i>ÉCHEC</span>
@@ -140,7 +140,9 @@
 {% block scripts %}
 <script>
 document.querySelectorAll('.stat-value').forEach(el => {
-  new CountUp(el, parseInt(el.textContent)).start();
+  if (window.countUp) {
+    new window.countUp.CountUp(el, parseInt(el.textContent)).start();
+  }
 });
 
 const canvas = document.getElementById('radar-chart');

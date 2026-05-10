@@ -57,14 +57,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 4. SCORE COUNTUP
     const scoreElements = document.querySelectorAll('[data-score]');
-    if (scoreElements.length > 0 && typeof CountUp !== 'undefined') {
+    if (scoreElements.length > 0 && window.countUp) {
         const scoreObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     const el = entry.target;
                     const score = parseInt(el.getAttribute('data-score')) || 0;
                     if (!el.classList.contains('counted')) {
-                        const counter = new CountUp(el, score, { duration: 2 });
+                        const counter = new window.countUp.CountUp(el, score, { duration: 2 });
                         if (!counter.error) {
                             counter.start();
                         }
@@ -78,11 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
         scoreElements.forEach(el => scoreObserver.observe(el));
     }
 
-    // 5. PAGE TITLE BLUR-IN
-    const firstTitle = document.querySelector('h1, .page-title');
-    if (firstTitle) {
-        firstTitle.classList.add('title-reveal');
-    }
 
     // 6. FLASH AUTO-DISMISS
     const flashes = document.querySelectorAll('.alert-ctf');

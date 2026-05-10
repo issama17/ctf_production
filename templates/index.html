@@ -337,7 +337,9 @@ new Typed('#typed-target', {
 });
 
 document.querySelectorAll('.stat-value').forEach(el => {
-  new CountUp(el, parseInt(el.textContent)).start();
+  if (window.countUp) {
+    new window.countUp.CountUp(el, parseInt(el.textContent)).start();
+  }
 });
 
 function filtrer(type, btn) {
