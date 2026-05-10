@@ -77,8 +77,12 @@
   </div>
 
   <div class="flag-section">
-    <div class="flag-label">// FLAG RÉCUPÉRÉ DEPUIS LA BASE DE DONNÉES</div>
-    <div class="flag-value">{{ flag }}</div>
+    <div class="flag-label">// FLAG CHIFFRÉ (XOR + HEX) — SÉCURITÉ RENFORCÉE</div>
+    <div class="flag-value" id="flag-display">{{ flag }}</div>
+    <!-- Hint: Le flag est chiffré par XOR avec la clé 'EST_SECRET_KEY_99' puis encodé en Hexadécimal -->
+    <p style="font-size: 0.6rem; color: #999; margin-top: 10px; font-family: monospace;">
+      Note: Un administrateur système doit pouvoir déchiffrer cette donnée.
+    </p>
   </div>
 
   <div class="dashboard">

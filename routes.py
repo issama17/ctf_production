@@ -248,8 +248,13 @@ def register_routes(app, service_auth, service_ctf, user_repo):
     def lab_sqli_admin():
         if not session.get("lab_sqli_pwned"):
             return redirect(url_for("lab_sqli_login"))
-        flag = os.getenv("FLAG_SQLI", "CTF{CHANGEME_EN_PROD}")
-        return render_template("lab/sqli_admin.html", flag=flag)
+        
+        # Le flag est stocké uniquement sous sa forme chiffrée (Hex) pour GitHub.
+        # Format original: CTF{...}
+        # Chiffrement: XOR avec la clé 'EST_SECRET_KEY_99'
+        encrypted_flag = "0607122400140f1b1a191e18111c0d667c16070b0b16110c07041a22"
+        
+        return render_template("lab/sqli_admin.html", flag=encrypted_flag)
 
     @app.route("/lab/sqli/reset")
     def lab_sqli_reset():
