@@ -276,6 +276,32 @@ def _initialiser_defis(service_ctf: ServiceCTF):
         calculateur_score=ScoreDegressif()
     ))
 
+    service_ctf.enregistrer_defi(DefiWeb(
+        identifiant="web_nexuscorp",
+        titre="NexusCorp — The Forgotten Artifact",
+        description=(
+            "L'équipe de sécurité de NexusCorp a découvert une ancienne page de maintenance "
+            "supposée être hors service depuis des années. Cependant, des logs internes suggèrent "
+            "qu'un employé nommé « reeeda » aurait laissé des traces d'identifiants opérationnels "
+            "dans les métadonnées du processus de déploiement.<br><br>"
+            "Votre mission est d'analyser les artefacts fournis, de remonter l'historique "
+            "de déploiement et de pivoter à travers l'infrastructure de l'entreprise pour "
+            "récupérer le flag d'accès maître.<br><br>"
+            "Format : <code>CTF{...}</code>"
+        ),
+        points=350,
+        difficulte="Difficile",
+        flag_hash="536db512fef9426c36dad6b1b5da32e9f93ea2b0f13dc58b0aba4834db670ef6",
+        web_category="OSINT / Web / DNS / Cryptographie",
+        evidence_filename="nexuscorp_challenge.zip",
+        hints=[
+            "Inspectez les commentaires HTML pour trouver des traces de versions précédentes (commit hashes).",
+            "Le 'note' dans la configuration de déploiement semble être de l'hexadécimal. Qu'est-ce qu'il indique ?",
+            "Une fois que vous avez le domaine d'opérations, vérifiez ses enregistrements TXT. Le résultat final semble être encodé en Base64 et protégé par un XOR avec la clé 'darkweb_hunter'.",
+        ],
+        calculateur_score=ScoreDegressif()
+    ))
+
 class ApplicationCTF:
     def __init__(self):
         self._app = create_app()
