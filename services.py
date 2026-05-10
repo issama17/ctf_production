@@ -54,6 +54,25 @@ class ServiceAuth:
         row = self._user_repo.obtenir_par_id(uid)
         return UsineUtilisateur.creer(row) if row else None
 
+    def mettre_a_jour_profil(self, uid: int, username: str, email: str) -> dict:
+        if len(username) < 3:
+            return {"succes": False, "message": "Le nom doit faire au moins 3 caractères."}
+        if "@" not in email:
+            return {"succes": False, "message": "Email invalide."}
+            
+        success = self._user_repo.mettre_a_jour_profil(uid, username, email)
+        if not success:
+            return {"succes": False, "message": "Cet email ou nom d'utilisateur est déjà pris."}
+        return {"succes": True, "message": "Profil mis à jour avec succès."}
+
+    def reinitialiser_mot_de_passe(self, email: str, new_password: str) -> dict:
+        if len(new_password) < 6:
+            return {"succes": False, "message": "Le mot de passe doit faire au moins 6 caractères."}
+        pwd_hash = Utilisateur.hacher_mot_de_passe(new_password)
+        success = self._user_repo.mettre_a_jour_mot_de_passe(email, pwd_hash)
+        if not success:
+            return {"succes": False, "message": "Aucun utilisateur trouvé avec cet email."}
+        return {"succes": True, "message": "Mot de passe réinitialisé avec succès."}
 
 # ══════════════════════════════════════════════════════
 #  PATRON OBSERVER : SYSTEME DE NOTIFICATIONS

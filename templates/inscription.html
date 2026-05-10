@@ -4,6 +4,18 @@
 .auth-card{max-width:440px;margin:0 auto;}
 .auth-title{font-family:var(--mono);font-size:1.8rem;color:var(--green);}
 .divider{height:1px;background:var(--border);margin:1.5rem 0;}
+input:-webkit-autofill,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:hover {
+  -webkit-box-shadow: 0 0 0 1000px #03060b inset !important;
+  -webkit-text-fill-color: #d0dbe8 !important;
+  caret-color: #d0dbe8;
+  border-color: var(--border) !important;
+}
+select.ctf-input option {
+  background: #080c14;
+  color: #d0dbe8;
+}
 {% endblock %}
 
 {% block contenu %}
@@ -21,8 +33,14 @@
       <!-- Nom d'utilisateur -->
       <div class="mb-3">
         <label class="ctf-label"><i class="bi bi-person me-1"></i>NOM D'UTILISATEUR</label>
-        <input type="text" name="nom" class="ctf-input"
-               placeholder="ex: h4cker_42" required minlength="3"/>
+        <input type="text" name="nom" id="nom-input" class="ctf-input"
+               placeholder="ex: h4cker_42" required
+               minlength="3" maxlength="20"
+               pattern="^[a-zA-Z0-9_\-]+$"
+               title="Lettres, chiffres, _ et - uniquement"/>
+        <small class="ctf-label" style="font-size:.68rem; margin-top:.3rem; display:block;">
+          3–20 caractères · lettres, chiffres, _ et - uniquement
+        </small>
       </div>
 
       <!-- Email -->
@@ -55,10 +73,22 @@
       </div>
 
       <!-- Mot de passe -->
-      <div class="mb-4">
+      <div class="mb-3">
         <label class="ctf-label"><i class="bi bi-lock me-1"></i>MOT DE PASSE</label>
-        <input type="password" name="mdp" class="ctf-input"
+        <input type="password" name="mdp" id="mdp" class="ctf-input"
                placeholder="minimum 6 caractères" required minlength="6"/>
+        <div id="pwd-strength" style="height:3px; border-radius:2px; margin-top:.4rem;
+             width:0%; background:var(--border); transition:all .3s;"></div>
+        <small id="pwd-label" class="ctf-label" style="font-size:.68rem; margin-top:.2rem;
+               display:block; min-height:1rem;"></small>
+      </div>
+
+      <div class="mb-4">
+        <label class="ctf-label"><i class="bi bi-lock-fill me-1"></i>CONFIRMER MOT DE PASSE</label>
+        <input type="password" name="mdp_confirm" id="mdp_confirm" class="ctf-input"
+               placeholder="répéter le mot de passe" required minlength="6"/>
+        <small id="match-label" class="ctf-label" style="font-size:.68rem; margin-top:.2rem;
+               display:block; min-height:1rem;"></small>
       </div>
 
       <button type="submit" class="btn-ctf-full">
@@ -73,4 +103,66 @@
     </p>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Indicateur force mot de passe
+document.getElementById('mdp').addEventListener('input', function() {
+  const v = this.value;
+  const bar = document.getElementById('pwd-strength');
+  const lbl = document.getElementById('pwd-label');
+  if (!v) { bar.style.width='0%'; lbl.textContent=''; return; }
+  if (v.length < 6) {
+    bar.style.width='25%'; bar.style.background='#ff3366';
+    lbl.textContent='Trop court'; lbl.style.color='#ff3366';
+  } else if (v.length < 10) {
+    bar.style.width='60%'; bar.style.background='#ffc400';
+    lbl.textContent='Moyen'; lbl.style.color='#ffc400';
+  } else {
+    bar.style.width='100%'; bar.style.background='#00e676';
+    lbl.textContent='Fort'; lbl.style.color='#00e676';
+  }
+  // re-vérifier la correspondance si l'autre champ est déjà rempli
+  checkMatch();
+});
+
+// ── Vérification correspondance en temps réel
+document.getElementById('mdp_confirm').addEventListener('input', checkMatch);
+
+function checkMatch() {
+  const p1 = document.getElementById('mdp').value;
+  const p2 = document.getElementById('mdp_confirm').value;
+  const lbl = document.getElementById('match-label');
+  if (!p2) { lbl.textContent=''; return; }
+  if (p1 === p2) {
+    lbl.textContent='✓ Les mots de passe correspondent';
+    lbl.style.color='#00e676';
+  } else {
+    lbl.textContent='✗ Les mots de passe ne correspondent pas';
+    lbl.style.color='#ff3366';
+  }
+}
+
+// ── Bloquer le submit si mots de passe différents (utilise Toastify déjà chargé)
+document.querySelector('form').addEventListener('submit', function(e) {
+  const p1 = document.getElementById('mdp').value;
+  const p2 = document.getElementById('mdp_confirm').value;
+  if (p1 !== p2) {
+    e.preventDefault();
+    Toastify({
+      text: "❌ Les mots de passe ne correspondent pas",
+      duration: 3000,
+      gravity: "top", position: "right",
+      style: {
+        background: "rgba(255,51,102,0.1)",
+        border: "1px solid #ff3366",
+        color: "#ff3366",
+        fontFamily: "'JetBrains Mono', monospace",
+        borderRadius: "6px"
+      }
+    }).showToast();
+  }
+});
+</script>
 {% endblock %}

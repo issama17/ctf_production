@@ -41,6 +41,26 @@ class UtilisateurRepository:
     def obtenir_classement(self) -> List[UserModele]:
         return UserModele.query.order_by(UserModele.score.desc()).all()
 
+    def mettre_a_jour_profil(self, uid: int, username: str, email: str) -> bool:
+        u = self.obtenir_par_id(uid)
+        if u:
+            existing = UserModele.query.filter((UserModele.email == email) | (UserModele.username == username)).first()
+            if existing and existing.id != uid:
+                return False
+            u.username = username
+            u.email = email
+            db.session.commit()
+            return True
+        return False
+
+    def mettre_a_jour_mot_de_passe(self, email: str, pwd_hash: str) -> bool:
+        u = self.obtenir_par_email(email)
+        if u:
+            u.password_hash = pwd_hash
+            db.session.commit()
+            return True
+        return False
+
 
 class DefiRepository:
     """
@@ -70,7 +90,7 @@ class DefiRepository:
 
     def obtenir_historique(self, uid: int) -> List[dict]:
         rows = SubmissionModele.query.filter_by(user_id=uid).order_by(SubmissionModele.submission_date.desc()).limit(20).all()
-        return [{"challenge_id": r.challenge_id, "success": r.success, "date_soumis": r.submission_date} for r in rows]
+        return [{"challenge_id": r.challenge_id, "type": r.challenge_id.split('_')[0], "success": r.success, "date_soumis": r.submission_date} for r in rows]
 
     def obtenir_nombre_resolus(self, uid: int) -> int:
         return SubmissionModele.query.filter_by(user_id=uid, success=True).count()

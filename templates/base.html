@@ -6,26 +6,33 @@
   <title>{% block titre %}CTF_LAB{% endblock %}</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js@1.12.0/src/toastify.min.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/splitting@1.0.6/dist/splitting.min.css"/>
   <style>
     :root {
       --bg: #03060b; --bg2: #080c14; --card: #0b101a; --border: #162235;
       --green: #00e676; --green-dim: #00c853; --cyan: #00b0ff;
       --red: #ff3366; --yellow: #ffc400; --text: #d0dbe8; --text-dim: #6b829e;
       --pink: #ff66b2; --pink-dim: #ff3399;
-      --mono: 'Share Tech Mono', monospace; --sans: 'Rajdhani', sans-serif;
+      --mono: 'JetBrains Mono', monospace; --sans: 'Rajdhani', sans-serif;
     }
     *{box-sizing:border-box;}
+    html { scroll-behavior: smooth; }
     body{background:radial-gradient(circle at top right, rgba(0, 176, 255, 0.03), transparent 40%), radial-gradient(circle at bottom left, rgba(0, 230, 118, 0.03), transparent 40%), var(--bg);color:var(--text);font-family:var(--sans);font-size:1.05rem;min-height:100vh;}
-    body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,136,.015) 2px,rgba(0,255,136,.015) 4px);pointer-events:none;z-index:9999;}
+    body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,255,136,.02) 3px,rgba(0,255,136,.02) 4px);pointer-events:none;z-index:9999;}
+    #particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+    main { position: relative; z-index: 1; }
 
     /* Navbar */
     .navbar-ctf{background:rgba(8, 12, 20, 0.85);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,0.03);padding:.75rem 2rem;position:sticky;top:0;z-index:1000;}
-    .navbar-brand{font-family:var(--mono);font-size:1.25rem;color:#fff!important;letter-spacing:3px;text-shadow:0 0 8px rgba(0,230,118,.3);}
+    .navbar-brand{font-family:'Orbitron', monospace !important;font-size:1.25rem;color:#fff!important;letter-spacing:4px;text-shadow:0 0 8px rgba(0,230,118,.3);}
     .navbar-brand span{color:var(--green);}
     .nav-link-ctf{font-family:var(--mono);font-size:.8rem;color:var(--text-dim)!important;letter-spacing:1px;text-decoration:none;padding:.4rem .8rem;border-radius:4px;transition:all .2s ease;}
     .nav-link-ctf:hover{color:var(--text)!important;background:rgba(255,255,255,.03);}
-    .nav-link-ctf.active{color:var(--green)!important;background:rgba(0,230,118,.05);}
+    .nav-link-ctf.active{color:var(--green)!important;background:rgba(0,230,118,.05);border-bottom: 2px solid var(--green);padding-bottom: calc(.4rem - 2px);}
     .btn-nav-logout{font-family:var(--mono);font-size:.75rem;background:transparent;border:1px solid rgba(255,51,102,.4);color:var(--red);padding:.3rem .8rem;border-radius:4px;cursor:pointer;transition:all .2s ease;text-decoration:none;display:inline-flex;align-items:center;}
     .btn-nav-logout:hover{background:rgba(255,51,102,.1);color:var(--red);border-color:var(--red);}
     .btn-nav-login{font-family:var(--mono);font-size:.75rem;background:rgba(0,230,118,.05);border:1px solid rgba(0,230,118,.4);color:var(--green);padding:.3rem .8rem;border-radius:4px;text-decoration:none;transition:all .2s ease;}
@@ -40,8 +47,8 @@
     .nav-pts{font-family:var(--mono);font-size:.75rem;color:var(--cyan);background:rgba(0,176,255,.05);padding:.3rem .6rem;border-radius:4px;border:1px solid rgba(0,176,255,.2);}
 
     /* Cards */
-    .ctf-card{background:var(--card);border:1px solid var(--border);border-radius:8px;transform:translateY(0);transition:all .3s ease;box-shadow:0 4px 20px rgba(0,0,0,0.5);}
-    .ctf-card:hover{border-color:rgba(0,176,255,.3);box-shadow:0 8px 30px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,176,255,.1) inset;transform:translateY(-2px);}
+    .ctf-card{backdrop-filter: blur(8px);-webkit-backdrop-filter: blur(8px);background:rgba(11, 16, 26, 0.7);border:1px solid var(--border);border-radius:8px;transform:translateY(0);transition:all .3s ease;box-shadow:0 4px 20px rgba(0,0,0,0.5);}
+    .ctf-card:hover{border-color:rgba(0,176,255,.3);box-shadow:0 0 0 1px rgba(0,176,255,.15) inset, 0 0 24px rgba(0,176,255,.08), 0 8px 30px rgba(0,0,0,0.6);transform:translateY(-2px);}
 
     /* Buttons */
     .btn-ctf{font-family:var(--mono);font-size:.85rem;letter-spacing:1px;background:rgba(0,176,255,.05);border:1px solid var(--cyan);color:var(--cyan);padding:.55rem 1.4rem;border-radius:4px;transition:all .2s ease;cursor:pointer;}
@@ -73,15 +80,25 @@
     .glow{animation:glowPulse 3s ease-in-out infinite;}
     .ctf-footer{border-top:1px solid var(--border);background:var(--bg2);font-family:var(--mono);font-size:.75rem;color:var(--text-dim);}
     a.text-cyan{color:var(--cyan)!important;}
+    .navbar-brand .char {
+      animation: charReveal 0.5s both;
+      animation-delay: calc(0.04s * var(--char-index));
+      display: inline-block;
+    }
+    @keyframes charReveal {
+      from { opacity: 0; transform: translateY(-10px) rotateX(90deg); }
+      to   { opacity: 1; transform: translateY(0)    rotateX(0deg); }
+    }
     {% block styles %}{% endblock %}
   </style>
 </head>
 <body>
 
 <!-- NAVBAR -->
+<div id="particles"></div>
 <nav class="navbar-ctf d-flex align-items-center justify-content-between flex-wrap gap-2">
   <div class="d-flex align-items-center gap-4">
-    <a href="/" class="navbar-brand text-decoration-none">
+    <a href="/" id="brand-logo" class="navbar-brand text-decoration-none" data-splitting>
       <i class="bi bi-shield-lock-fill me-2"></i>CTF<span>_LAB</span>
     </a>
     {% if current_user.is_authenticated %}
@@ -148,6 +165,48 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/typed.js@2.1.0/dist/typed.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/countup.js@2.8.0/dist/countUp.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tsparticles@3.4.0/tsparticles.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/toastify-js@1.12.0/src/toastify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.net.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/TextPlugin.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/splitting@1.0.6/dist/splitting.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lottie-web@5.12.2/build/player/lottie.min.js"></script>
+
+<script>
+  AOS.init({ duration: 500, once: true, easing: 'ease-out' });
+  hljs.highlightAll();
+  Splitting();
+
+  tsParticles.load("particles", {
+    particles: {
+      number: { value: 50 },
+      color: { value: "#00e676" },
+      opacity: { value: 0.12 },
+      size: { value: 1.5 },
+      links: { enable: true, color: "#162235", opacity: 0.4, distance: 140 },
+      move: { enable: true, speed: 0.5 }
+    },
+    interactivity: {
+      events: {
+        onHover: { enable: true, mode: "repulse" },
+        onClick: { enable: true, mode: "push" }
+      },
+      modes: {
+        repulse: { distance: 100 },
+        push: { quantity: 4 }
+      }
+    },
+    background: { color: "transparent" }
+  });
+</script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -52,13 +52,13 @@
 <div class="row g-3 mb-5">
   <div class="col-md-4">
     <div class="stat-box">
-      <div class="score-big mb-1">{{ current_user.score }}</div>
+      <div class="score-big mb-1 stat-value">{{ current_user.score }}</div>
       <div class="text-dim font-mono" style="font-size:.8rem;">POINTS TOTAUX</div>
     </div>
   </div>
   <div class="col-md-4">
     <div class="stat-box">
-      <div class="stat-val text-green mb-1">
+      <div class="stat-val text-green mb-1 stat-value">
         {{ historique | selectattr('succes', 'equalto', true) | list | length }}
       </div>
       <div class="text-dim font-mono" style="font-size:.8rem;">DÉFIS RÉSOLUS</div>
@@ -74,6 +74,26 @@
   </div>
 </div>
 
+<!-- Charts -->
+<div class="row g-4 mb-5">
+  <div class="col-md-6">
+    <div class="ctf-card p-4">
+      <h6 class="font-mono text-cyan mb-3">Compétences</h6>
+      <canvas id="radar-chart"
+        data-crypto="{{ historique | selectattr('type', 'equalto', 'crypto') | selectattr('succes', 'equalto', true) | list | length }}"
+        data-web="{{ historique | selectattr('type', 'equalto', 'web') | selectattr('succes', 'equalto', true) | list | length }}"
+        data-stegano="{{ historique | selectattr('type', 'equalto', 'stegano') | selectattr('succes', 'equalto', true) | list | length }}">
+      </canvas>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="ctf-card p-4">
+      <h6 class="font-mono text-green mb-3">Progression</h6>
+      <canvas id="doughnut-chart"></canvas>
+    </div>
+  </div>
+</div>
+
 <!-- Historique des soumissions -->
 <div class="d-flex align-items-center gap-3 mb-3">
   <span class="font-mono text-dim" style="font-size:.8rem;">// HISTORIQUE DES SOUMISSIONS</span>
@@ -85,7 +105,7 @@
     {% for h in historique %}
     <div class="hist-row">
       <div>
-        <span class="font-mono text-cyan">{{ h['defi_id'] }}</span>
+        <span class="font-mono text-cyan">{{ h['challenge_id'] }}</span>
       </div>
       <div class="d-flex align-items-center gap-3">
         <span class="text-dim" style="font-size:.75rem;">
@@ -115,4 +135,54 @@
   </a>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.stat-value').forEach(el => {
+  new CountUp(el, parseInt(el.textContent)).start();
+});
+
+const canvas = document.getElementById('radar-chart');
+const cryptoCount  = parseInt(canvas.dataset.crypto)  || 0;
+const webCount     = parseInt(canvas.dataset.web)     || 0;
+const steganoCount = parseInt(canvas.dataset.stegano) || 0;
+
+new Chart(canvas, {
+  type: 'radar',
+  data: {
+    labels: ['Crypto', 'Web', 'Stégano'],
+    datasets: [{
+      data: [cryptoCount, webCount, steganoCount],
+      borderColor: '#00e676',
+      backgroundColor: 'rgba(0,230,118,0.08)',
+      pointBackgroundColor: '#00e676'
+    }]
+  },
+  options: {
+    scales: { r: { grid: { color: '#162235' }, ticks: { display: false } } },
+    plugins: { legend: { display: false } }
+  }
+});
+
+const resolus = parseInt(document.getElementById('radar-chart').dataset.crypto || 0)
+              + parseInt(document.getElementById('radar-chart').dataset.web || 0)
+              + parseInt(document.getElementById('radar-chart').dataset.stegano || 0);
+const nonResolus = Math.max({{ defis_total }} - resolus, 0);
+
+new Chart(document.getElementById('doughnut-chart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Résolu', 'Non Résolu'],
+    datasets: [{
+      data: [resolus, nonResolus],
+      backgroundColor: ['#00e676', '#162235'],
+      borderWidth: 0
+    }]
+  },
+  options: {
+    plugins: { legend: { position: 'bottom', labels: { color: '#d0dbe8' } } }
+  }
+});
+</script>
 {% endblock %}

@@ -33,10 +33,11 @@
 {% block contenu %}
 
 <!-- HERO -->
-<div class="row mb-5 align-items-center">
+<div id="hero-bg" style="margin: -3rem -12px; padding: 3rem 12px; border-radius: 8px; margin-bottom: 3rem;">
+<div class="row align-items-center">
   <div class="col-lg-8">
     <p class="font-mono text-dim mb-2" style="font-size:.85rem;">
-      <span class="text-green">$</span> ./ctf_lab --start
+      <span class="text-green">$</span> <span id="typed-target"></span>
     </p>
     <h1 class="hero-title glow mb-3">Bienvenue sur<br/>CTF_LAB</h1>
     <p class="hero-sub mb-4">
@@ -50,19 +51,19 @@
   <div class="col-lg-4 mt-4 mt-lg-0">
     <div class="row g-3">
       <div class="col-6">
-        <div class="stat-box">
+        <div class="stat-box" data-aos="fade-up" data-aos-delay="100">
           <div class="stat-value">{{ defis|length }}</div>
           <div class="text-dim" style="font-size:.8rem;">DÉFIS</div>
         </div>
       </div>
       <div class="col-6">
-        <div class="stat-box">
+        <div class="stat-box" data-aos="fade-up" data-aos-delay="200">
           <div class="stat-value">{{ defis|sum(attribute='points') }}</div>
           <div class="text-dim" style="font-size:.8rem;">POINTS</div>
         </div>
       </div>
       <div class="col-12">
-        <div class="stat-box">
+        <div class="stat-box" data-aos="fade-up" data-aos-delay="300">
           <div class="font-mono text-green" style="font-size:.8rem;">
             <i class="bi bi-circle-fill me-2" style="font-size:.5rem;"></i>Serveur actif
           </div>
@@ -70,6 +71,7 @@
       </div>
     </div>
   </div>
+</div>
 </div>
 
 <!-- SÉPARATEUR + FILTRES -->
@@ -148,6 +150,15 @@
 
 {% block scripts %}
 <script>
+new Typed('#typed-target', {
+  strings: ['./ctf_lab --start', './enumerate --targets all', './ctf_lab --run'],
+  typeSpeed: 60, backSpeed: 30, loop: true, backDelay: 1800
+});
+
+document.querySelectorAll('.stat-value').forEach(el => {
+  new CountUp(el, parseInt(el.textContent)).start();
+});
+
 function filtrer(type, btn) {
   document.querySelectorAll(".filter-tab").forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
@@ -155,5 +166,33 @@ function filtrer(type, btn) {
     card.style.display = (type === "all" || card.dataset.type === type) ? "" : "none";
   });
 }
+
+// Vanta.js Hero Background
+VANTA.NET({
+  el: "#hero-bg",
+  color: 0x00e676,
+  backgroundColor: 0x03060b,
+  points: 8,
+  maxDistance: 22,
+  spacing: 20,
+  showDots: false
+});
+
+// GSAP Animations
+gsap.registerPlugin(ScrollTrigger, TextPlugin);
+
+gsap.from(".defi-card", {
+  scrollTrigger: { trigger: "#grille-defis", start: "top 80%" },
+  y: 40, opacity: 0, duration: 0.6,
+  stagger: 0.08, ease: "power3.out"
+});
+
+gsap.from(".hero-title", { y: 30, opacity: 0, duration: 1, ease: "power2.out" });
+gsap.from(".hero-sub",   { y: 20, opacity: 0, duration: 1, delay: 0.3, ease: "power2.out" });
+
+gsap.to("#brand-logo", {
+  duration: 1.5, text: { value: "CTF_LAB", scramble: 8, chars: "01#$@!" },
+  ease: "none", delay: 0.5
+});
 </script>
 {% endblock %}

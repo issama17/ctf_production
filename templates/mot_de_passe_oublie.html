@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block titre %}CTF_LAB — Mot de passe oublié{% endblock %}
+{% block styles %}
+.auth-card{max-width:440px;margin:0 auto;}
+.auth-title{font-family:var(--mono);font-size:1.8rem;color:var(--yellow);}
+.divider{height:1px;background:var(--border);margin:1.5rem 0;}
+
+@keyframes glowPulseYellow {
+  0%, 100% { text-shadow: 0 0 8px rgba(255, 209, 102, .4); }
+  50% { text-shadow: 0 0 24px rgba(255, 209, 102, .9); }
+}
+.glow-yellow { animation: glowPulseYellow 3s ease-in-out infinite; }
+{% endblock %}
+
+{% block contenu %}
+<div class="auth-card">
+  <div class="text-center mb-4">
+    <p class="font-mono text-dim mb-1" style="font-size:.8rem;">
+      <span class="text-yellow">$</span> ./reset_password
+    </p>
+    <h1 class="auth-title glow-yellow mb-3">Réinitialisation</h1>
+    <p class="text-dim" style="font-size:.9rem;">Créez un nouveau mot de passe</p>
+  </div>
+
+  <div class="ctf-card p-4">
+    <form method="POST" action="/mot_de_passe_oublie">
+      <div class="mb-3">
+        <label class="ctf-label"><i class="bi bi-envelope me-1"></i>ADRESSE EMAIL</label>
+        <input type="email" name="email" class="ctf-input"
+               placeholder="votre@email.com" required autofocus/>
+      </div>
+
+      <div class="mb-4">
+        <label class="ctf-label"><i class="bi bi-lock me-1"></i>NOUVEAU MOT DE PASSE</label>
+        <input type="password" name="new_password" class="ctf-input"
+               placeholder="••••••••" required/>
+      </div>
+
+      <button type="submit" class="btn-ctf-full" style="background:var(--yellow); color:#000;">
+        <i class="bi bi-arrow-clockwise me-2"></i>Réinitialiser
+      </button>
+    </form>
+
+    <div class="divider"></div>
+    <p class="text-center text-dim font-mono" style="font-size:.82rem;">
+      <a href="/login" class="text-cyan text-decoration-none"><i class="bi bi-arrow-left"></i> Retour à la connexion</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

@@ -133,6 +133,10 @@ class Utilisateur(UserMixin, ABC):
     @property
     def experience(self) -> str: return self._experience
 
+    @property
+    def date_inscription(self) -> str:
+        return self._registration_date
+
     def get_id(self) -> str:
         return str(self.id)
 

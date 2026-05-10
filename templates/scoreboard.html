@@ -62,15 +62,15 @@
   <!-- 2nd place -->
   {% set p2 = joueurs[1] %}
   <div class="podium-item">
-    {% if p2.profile_pic %}
-      <img src="{{ p2.profile_pic }}" class="podium-avatar podium-avatar-2 d-block mx-auto mb-1" alt="">
+    {% if p2['profile_pic'] %}
+      <img src="{{ p2['profile_pic'] }}" class="podium-avatar podium-avatar-2 d-block mx-auto mb-1" alt="">
     {% else %}
       <div class="podium-fallback podium-avatar-2 mx-auto mb-1" style="border-color:#c8d8f0;color:#c8d8f0;background:rgba(200,216,240,.07);">
         <i class="bi bi-person-fill"></i>
       </div>
     {% endif %}
-    <div class="podium-name text-center mx-auto">{{ p2.nom }}</div>
-    <div class="podium-pts text-center" style="color:#c8d8f0;">{{ p2.score }} pts</div>
+    <div class="podium-name text-center mx-auto">{{ p2['nom'] }}</div>
+    <div class="podium-pts text-center" style="color:#c8d8f0;">{{ p2['score'] }} pts</div>
     <div class="podium-block podium-2 mt-2">
       <span class="podium-rank" style="color:#c8d8f0;">2</span>
     </div>
@@ -80,15 +80,15 @@
   {% set p1 = joueurs[0] %}
   <div class="podium-item">
     <div class="text-center mb-1" style="font-size:1.4rem;">👑</div>
-    {% if p1.profile_pic %}
-      <img src="{{ p1.profile_pic }}" class="podium-avatar podium-avatar-1 d-block mx-auto mb-1" alt="">
+    {% if p1['profile_pic'] %}
+      <img src="{{ p1['profile_pic'] }}" class="podium-avatar podium-avatar-1 d-block mx-auto mb-1" alt="">
     {% else %}
       <div class="podium-fallback podium-avatar-1 mx-auto mb-1" style="border-color:var(--yellow);color:var(--yellow);background:rgba(255,209,102,.07);">
         <i class="bi bi-person-fill"></i>
       </div>
     {% endif %}
-    <div class="podium-name text-center mx-auto" style="color:var(--yellow);">{{ p1.nom }}</div>
-    <div class="podium-pts text-center" style="color:var(--yellow);">{{ p1.score }} pts</div>
+    <div class="podium-name text-center mx-auto" style="color:var(--yellow);">{{ p1['nom'] }}</div>
+    <div class="podium-pts text-center" style="color:var(--yellow);">{{ p1['score'] }} pts</div>
     <div class="podium-block podium-1 mt-2">
       <span class="podium-rank podium-rank-1">1</span>
     </div>
@@ -97,15 +97,15 @@
   <!-- 3rd place -->
   {% set p3 = joueurs[2] %}
   <div class="podium-item">
-    {% if p3.profile_pic %}
-      <img src="{{ p3.profile_pic }}" class="podium-avatar podium-avatar-3 d-block mx-auto mb-1" alt="">
+    {% if p3['profile_pic'] %}
+      <img src="{{ p3['profile_pic'] }}" class="podium-avatar podium-avatar-3 d-block mx-auto mb-1" alt="">
     {% else %}
       <div class="podium-fallback podium-avatar-3 mx-auto mb-1" style="border-color:#cd7f32;color:#cd7f32;background:rgba(205,127,50,.07);">
         <i class="bi bi-person-fill"></i>
       </div>
     {% endif %}
-    <div class="podium-name text-center mx-auto">{{ p3.nom }}</div>
-    <div class="podium-pts text-center" style="color:#cd7f32;">{{ p3.score }} pts</div>
+    <div class="podium-name text-center mx-auto">{{ p3['nom'] }}</div>
+    <div class="podium-pts text-center" style="color:#cd7f32;">{{ p3['score'] }} pts</div>
     <div class="podium-block podium-3 mt-2">
       <span class="podium-rank podium-rank-3">3</span>
     </div>
@@ -113,6 +113,12 @@
 
 </div>
 {% endif %}
+
+<!-- ── Chart Top Scores ── -->
+<div class="ctf-card p-4 mb-5">
+  <h6 class="font-mono text-cyan mb-3">Top Scores (Chart)</h6>
+  <canvas id="bar-chart" height="80"></canvas>
+</div>
 
 <!-- ── Full table ── -->
 <div class="ctf-card p-0 overflow-hidden">
@@ -181,4 +187,40 @@
 </div>
 {% endif %}
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+const playerNames = [
+  {% for j in joueurs %}
+    "{{ j.nom }}",
+  {% endfor %}
+];
+const playerScores = [
+  {% for j in joueurs %}
+    {{ j.score }},
+  {% endfor %}
+];
+
+new Chart(document.getElementById('bar-chart'), {
+  type: 'bar',
+  data: {
+    labels: playerNames.slice(0, 10), // Top 10
+    datasets: [{
+      label: 'Points',
+      data: playerScores.slice(0, 10),
+      backgroundColor: 'rgba(0,176,255,0.2)',
+      borderColor: '#00b0ff',
+      borderWidth: 1
+    }]
+  },
+  options: {
+    scales: { 
+      y: { grid: { color: '#162235' }, beginAtZero: true },
+      x: { grid: { display: false } }
+    },
+    plugins: { legend: { display: false } }
+  }
+});
+</script>
 {% endblock %}

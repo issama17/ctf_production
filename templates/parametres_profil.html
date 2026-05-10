@@ -45,7 +45,7 @@
         {% endif %}
       </div>
 
-      <p class="font-mono text-green mb-0" style="font-size:.95rem;">{{ current_user.nom_utilisateur }}</p>
+      <p class="font-mono text-green mb-0" style="font-size:.95rem;">{{ current_user.username }}</p>
       <small class="text-dim font-mono">{{ current_user.email }}</small>
 
       <div class="mt-3 pt-3" style="border-top:1px solid var(--border);">
@@ -59,19 +59,37 @@
 
   <!-- Colonne droite : upload -->
   <div class="col-md-8">
+    <!-- Messages flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat, msg in messages %}
+          <div class="alert-ctf alert-{{ cat }} mb-3">
+            <i class="bi bi-{{ 'check-circle' if cat == 'success' else 'exclamation-triangle' }} me-2"></i>{{ msg }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="ctf-card p-4 mb-4">
+      <p class="font-mono text-dim mb-4" style="font-size:.75rem;">// MODIFIER LE PROFIL</p>
+
+      <form method="POST">
+        <div class="mb-3">
+          <label class="ctf-label"><i class="bi bi-person me-1"></i>NOM D'UTILISATEUR</label>
+          <input type="text" name="username" class="ctf-input" value="{{ current_user.username }}" required/>
+        </div>
+        <div class="mb-4">
+          <label class="ctf-label"><i class="bi bi-envelope me-1"></i>ADRESSE EMAIL</label>
+          <input type="email" name="email" class="ctf-input" value="{{ current_user.email }}" required/>
+        </div>
+        <button type="submit" class="btn-ctf-full">
+          <i class="bi bi-save me-2"></i>Enregistrer les modifications
+        </button>
+      </form>
+    </div>
+
     <div class="ctf-card p-4">
       <p class="font-mono text-dim mb-4" style="font-size:.75rem;">// CHANGER LA PHOTO</p>
-
-      <!-- Messages flash -->
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          {% for cat, msg in messages %}
-            <div class="alert-ctf alert-{{ cat }} mb-3">
-              <i class="bi bi-{{ 'check-circle' if cat == 'success' else 'exclamation-triangle' }} me-2"></i>{{ msg }}
-            </div>
-          {% endfor %}
-        {% endif %}
-      {% endwith %}
 
       <form method="POST" enctype="multipart/form-data" id="uploadForm">
 

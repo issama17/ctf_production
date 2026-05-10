@@ -75,12 +75,20 @@ def register_routes(app, service_auth, service_ctf, user_repo):
     @login_required
     def profil():
         historique = service_ctf._challenge_repo.obtenir_historique(current_user.id)
-        return render_template("profil.html", historique=historique)
+        defis_total = len(service_ctf._defis)
+        return render_template("profil.html", historique=historique, defis_total=defis_total)
 
     @app.route("/profil/parametres", methods=["GET", "POST"])
     @login_required
     def parametres_profil():
         if request.method == "POST":
+            if "username" in request.form and "email" in request.form:
+                username = request.form.get("username", "").strip()
+                email = request.form.get("email", "").strip().lower()
+                res = service_auth.mettre_a_jour_profil(current_user.id, username, email)
+                flash(res["message"], "success" if res["succes"] else "danger")
+                return redirect(url_for("parametres_profil"))
+
             if "photo" not in request.files:
                 flash("Aucun fichier sélectionné.", "danger")
                 return redirect(url_for("parametres_profil"))
@@ -117,6 +125,21 @@ def register_routes(app, service_auth, service_ctf, user_repo):
         user_row = user_repo.obtenir_par_id(current_user.id)
         photo_actuelle = user_row.profile_pic if user_row else None
         return render_template("parametres_profil.html", photo_actuelle=photo_actuelle)
+
+    @app.route("/mot_de_passe_oublie", methods=["GET", "POST"])
+    def mot_de_passe_oublie():
+        if current_user.is_authenticated:
+            return redirect(url_for("index"))
+            
+        if request.method == "POST":
+            email = request.form.get("email", "").strip().lower()
+            new_password = request.form.get("new_password", "")
+            res = service_auth.reinitialiser_mot_de_passe(email, new_password)
+            flash(res["message"], "success" if res["succes"] else "danger")
+            if res["succes"]:
+                return redirect(url_for("login"))
+                
+        return render_template("mot_de_passe_oublie.html")
 
     from models import FabriqueStatut
     @app.route("/scoreboard")

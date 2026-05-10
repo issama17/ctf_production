@@ -260,8 +260,8 @@
         </div>
       </div>
 
-      <!-- Zone résultat -->
-      <div id="resultat"></div>
+      <!-- Animation Lottie Succès -->
+      <div id="lottie-success" style="width:120px;height:120px;display:none;margin:0 auto;"></div>
 
       <!-- Zone indice -->
       <div id="indice-box" class="mt-3">
@@ -373,6 +373,14 @@ const victoire  = document.getElementById("victoire-banner");
 const vicPts    = document.getElementById("victory-pts");
 const statutBadge = document.getElementById("statut-badge");
 
+const anim = lottie.loadAnimation({
+  container: document.getElementById('lottie-success'),
+  renderer: 'svg',
+  loop: false,
+  autoplay: false,
+  path: 'https://assets10.lottiefiles.com/packages/lf20_jbrw3hcz.json'
+});
+
 /* ── Soumettre le flag ── */
 async function soumettre() {
   const flag = inputEl.value.trim();
@@ -393,11 +401,13 @@ async function soumettre() {
     mettreAJourBarre(data.tentatives ?? parseInt(compteur.textContent));
 
     if (data.succes) {
+      document.getElementById('lottie-success').style.display = 'block';
+      anim.play();
       vicPts.textContent = `+${data.points} points remportés !`;
       setTimeout(() => {
         victoire.style.display = "flex";
         statutBadge.innerHTML = '<span class="text-green"><i class="bi bi-check-circle me-1"></i>Résolu</span>';
-      }, 600);
+      }, 1500); // Lottie animation duration roughly
     }
 
   } catch (e) {
@@ -409,36 +419,58 @@ async function soumettre() {
 }
 
 function afficherResultat(data) {
-  resultatEl.style.display = "block";
   indiceBox.style.display  = "none";
 
   if (data.succes) {
-    resultatEl.className = "succes";
-    resultatEl.innerHTML = `<i class="bi bi-check-circle-fill me-2"></i>${data.message}`;
     inputEl.disabled = true;
     btnSubmit.disabled = true;
-
+    Toastify({
+      text: "✅ FLAG VALIDÉ — Bien joué !",
+      duration: 4000,
+      gravity: "top", position: "right",
+      style: {
+        background: "rgba(0,230,118,0.12)",
+        border: "1px solid #00e676",
+        fontFamily: "var(--mono)",
+        color: "#00e676",
+        borderRadius: "6px"
+      }
+    }).showToast();
   } else if (data.code === 429) {
-    resultatEl.className = "bloque";
-    resultatEl.innerHTML = `<i class="bi bi-lock-fill me-2"></i>${data.message}`;
     inputEl.disabled = true;
     btnSubmit.disabled = true;
-
+    Toastify({
+      text: "🔒 " + data.message,
+      duration: 3000,
+      gravity: "top", position: "right",
+      style: { background: "rgba(255,209,102,.15)", border: "1px solid var(--yellow)", fontFamily: "var(--mono)", color: "var(--yellow)", borderRadius: "6px" }
+    }).showToast();
   } else {
-    resultatEl.className = "echec";
-    resultatEl.innerHTML = `<i class="bi bi-x-circle-fill me-2"></i>${data.message}`;
-
     if (data.indice) {
       indiceBox.style.display = "block";
       indiceTxt.textContent   = data.indice;
     }
+    Toastify({
+      text: "❌ Flag incorrect — Réessaie",
+      duration: 3000,
+      gravity: "top", position: "right",
+      style: {
+        background: "rgba(255,51,102,0.1)",
+        border: "1px solid #ff3366",
+        fontFamily: "var(--mono)",
+        color: "#ff3366",
+        borderRadius: "6px"
+      }
+    }).showToast();
   }
 }
 
 function afficherErreur(msg) {
-  resultatEl.style.display = "block";
-  resultatEl.className     = "echec";
-  resultatEl.innerHTML     = `<i class="bi bi-exclamation-triangle me-2"></i>${msg}`;
+  Toastify({
+    text: `⚠️ ${msg}`,
+    duration: 3000,
+    style: { background: "rgba(255,60,95,.15)", border: "1px solid var(--red)", fontFamily: "Share Tech Mono", color: "var(--red)", boxShadow: "none" }
+  }).showToast();
 }
 
 function mettreAJourBarre(n) {
