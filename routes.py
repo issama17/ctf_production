@@ -74,8 +74,8 @@ def register_routes(app, service_auth, service_ctf, user_repo):
     @app.route("/profil")
     @login_required
     def profil():
-        historique = service_ctf._challenge_repo.obtenir_historique(current_user.id)
-        defis_total = len(service_ctf._defis)
+        historique = service_ctf.obtenir_historique_utilisateur(current_user.id)
+        defis_total = service_ctf.obtenir_nombre_defis()
         return render_template("profil.html", historique=historique, defis_total=defis_total)
 
     @app.route("/profil/parametres", methods=["GET", "POST"])
@@ -148,7 +148,7 @@ def register_routes(app, service_auth, service_ctf, user_repo):
         rows = user_repo.obtenir_classement()
         joueurs = []
         for row in rows:
-            resolus = service_ctf._challenge_repo.obtenir_nombre_resolus(row.id)
+            resolus = service_ctf.obtenir_nombre_resolus(row.id)
             statut_obj = FabriqueStatut.creer(row.statut)
             joueurs.append({
                 "nom":          row.username,

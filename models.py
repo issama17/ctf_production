@@ -1,21 +1,21 @@
 """
 Modèles de domaine et de données pour la plateforme CTF.
-Intègre les Design Patterns Strategy et State pour une architecture POO avancée.
+Réécrit selon les principes du cours (Partie 2) : Encapsulation, Héritage et Polymorphisme.
 """
 from abc import ABC, abstractmethod
 from datetime import datetime
 import hashlib
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
-
 from exceptions import DefiBloqueException, DefiDejaResoluException
 
 # Initialisation de SQLAlchemy
 db = SQLAlchemy()
 
 # ══════════════════════════════════════════════════════
-#  PATRON STRATEGY / FACTORY : Statut Utilisateur
+#  PATRON STRATEGY : Statut Utilisateur
 # ══════════════════════════════════════════════════════
+
 class StatutUtilisateur(ABC):
     @abstractmethod
     def obtenir_nom(self) -> str: pass
@@ -58,9 +58,6 @@ class UserModele(db.Model):
     statut = db.Column(db.String(64), nullable=True, default="Étudiant")
     experience = db.Column(db.String(32), nullable=True, default="Débutant")
 
-    submissions = db.relationship("SubmissionModele", backref="user", lazy=True)
-    attempts = db.relationship("AttemptModele", backref="user", lazy=True)
-
 class SubmissionModele(db.Model):
     __tablename__ = "submissions"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -76,130 +73,121 @@ class AttemptModele(db.Model):
     challenge_id = db.Column(db.String(64), nullable=False)
     attempts_count = db.Column(db.Integer, default=0)
 
-
 # ══════════════════════════════════════════════════════
-#  PATRON STRATEGY : CALCULATEUR DE SCORE
+#  MODÈLES DE DOMAINE (Logique Métier & Encapsulation)
 # ══════════════════════════════════════════════════════
 
 class CalculateurScore(ABC):
     @abstractmethod
-    def calculer(self, points_base: int, tentatives: int) -> int:
-        pass
+    def calculer(self, points_base: int, tentatives: int) -> int: pass
 
 class ScoreClassique(CalculateurScore):
-    """Donne toujours le nombre de points par défaut."""
-    def calculer(self, points_base: int, tentatives: int) -> int:
-        return points_base
+    def calculer(self, points_base: int, tentatives: int) -> int: return points_base
 
 class ScoreDegressif(CalculateurScore):
-    """Diminue les points de 10% par tentative ratée (maximum 50% de perte)."""
     def calculer(self, points_base: int, tentatives: int) -> int:
         perte = min(tentatives * 0.10, 0.50)
         return int(points_base * (1 - perte))
 
-
-# ══════════════════════════════════════════════════════
-#  MODÈLES DE DOMAINE (Couche Logique)
-# ══════════════════════════════════════════════════════
-
 class Utilisateur(UserMixin, ABC):
     def __init__(self, user_modele: UserModele):
-        self._id = user_modele.id
-        self._username = user_modele.username
-        self._email = user_modele.email
-        self._password_hash = user_modele.password_hash
-        self._score = user_modele.score or 0
-        self._registration_date = user_modele.registration_date
-        self._profile_pic = user_modele.profile_pic
-        self._statut_obj = FabriqueStatut.creer(user_modele.statut)
-        self._experience = user_modele.experience
+        # Encapsulation stricte : Attributs privés (double underscore)
+        self.__id = user_modele.id
+        self.__username = user_modele.username
+        self.__email = user_modele.email
+        self.__password_hash = user_modele.password_hash
+        self.__score = user_modele.score or 0
+        self.__registration_date = user_modele.registration_date
+        self.__profile_pic = user_modele.profile_pic
+        self.__statut_obj = FabriqueStatut.creer(user_modele.statut)
+        self.__experience = user_modele.experience
 
+    # Accesseurs (Getters) pour maintenir la compatibilité templates
     @property
-    def id(self) -> int: return self._id
+    def id(self): return self.__id
     @property
-    def username(self) -> str: return self._username
+    def username(self): return self.__username
     @property
-    def email(self) -> str: return self._email
+    def email(self): return self.__email
     @property
-    def score(self) -> int: return self._score
+    def score(self): return self.__score
     @property
-    def profile_pic(self) -> str: return self._profile_pic
+    def profile_pic(self): return self.__profile_pic
+    @property
+    def experience(self): return self.__experience
+    @property
+    def date_inscription(self): return self.__registration_date
+    @property
+    def registration_date(self): return self.__registration_date
     
     @property
-    def statut_nom(self) -> str: return self._statut_obj.obtenir_nom()
+    def statut_nom(self): return self.__statut_obj.obtenir_nom()
     @property
-    def statut_couleur(self) -> str: return self._statut_obj.obtenir_couleur()
-    
-    @property
-    def experience(self) -> str: return self._experience
+    def statut_couleur(self): return self.__statut_obj.obtenir_couleur()
 
-    @property
-    def date_inscription(self) -> str:
-        return self._registration_date
-
-    def get_id(self) -> str:
-        return str(self.id)
+    def get_id(self): return str(self.__id)
 
     def verifier_mot_de_passe(self, password: str) -> bool:
-        return self.hacher_mot_de_passe(password) == self._password_hash
+        return hashlib.sha256(password.encode()).hexdigest() == self.__password_hash
 
     @staticmethod
     def hacher_mot_de_passe(password: str) -> str:
         return hashlib.sha256(password.encode()).hexdigest()
 
     @abstractmethod
-    def obtenir_role(self) -> str:
-        pass
+    def obtenir_role(self) -> str: pass
 
 class Participant(Utilisateur):
-    def obtenir_role(self) -> str:
-        return "participant"
+    def obtenir_role(self) -> str: return "participant"
 
 class Administrateur(Utilisateur):
-    def obtenir_role(self) -> str:
-        return "admin"
+    def obtenir_role(self) -> str: return "admin"
+
+class UsineUtilisateur:
+    @staticmethod
+    def creer(user_modele: UserModele) -> Utilisateur:
+        if user_modele.role == "admin": return Administrateur(user_modele)
+        return Participant(user_modele)
 
 class Defi(ABC):
-    def __init__(self, identifiant: str, titre: str, description: str, points: int, difficulte: str, flag_hash: str, calculateur_score: CalculateurScore = None, lab_url: str = None):
-        self._id = identifiant
-        self._titre = titre
-        self._description = description
-        self._points = points
-        self._difficulte = difficulte
-        self._flag_hash = flag_hash
-        self._calculateur_score = calculateur_score or ScoreClassique()
-        self._lab_url = lab_url
+    def __init__(self, identifiant, titre, description, points, difficulte, flag_hash, calculateur_score=None, lab_url=None):
+        self.__id = identifiant
+        self.__titre = titre
+        self.__description = description
+        self.__points = points
+        self.__difficulte = difficulte
+        self.__flag_hash = flag_hash
+        self.__calculateur_score = calculateur_score or ScoreClassique()
+        self.__lab_url = lab_url
 
+    # Getters
     @property
-    def id(self) -> str: return self._id
+    def id(self): return self.__id
     @property
-    def titre(self) -> str: return self._titre
+    def titre(self): return self.__titre
     @property
-    def description(self) -> str: return self._description
+    def description(self): return self.__description
     @property
-    def points(self) -> int: return self._points
+    def points(self): return self.__points
     @property
-    def difficulte(self) -> str: return self._difficulte
+    def difficulte(self): return self.__difficulte
     @property
-    def lab_url(self) -> str: return self._lab_url
+    def lab_url(self): return self.__lab_url
 
     def valider_flag(self, tentative: str) -> bool:
-        return hashlib.sha256(tentative.strip().encode()).hexdigest() == self._flag_hash
+        return hashlib.sha256(tentative.strip().encode()).hexdigest() == self.__flag_hash
 
     def calculer_recompense(self, tentatives: int) -> int:
-        """Calcule les points selon le patron Strategy."""
-        return self._calculateur_score.calculer(self._points, tentatives)
+        return self.__calculateur_score.calculer(self.__points, tentatives)
 
     @abstractmethod
-    def obtenir_indice(self, attempts_count: int) -> str:
-        pass
+    def obtenir_indice(self, attempts_count: int) -> str: pass
 
     @abstractmethod
-    def en_dictionnaire(self) -> dict:
-        pass
+    def en_dictionnaire(self) -> dict: pass
 
 class DefiStegano(Defi):
-    def __init__(self, identifiant: str, titre: str, description: str, points: int, difficulte: str, flag_hash: str, image_file: str, tool_used: str, calculateur_score: CalculateurScore = None):
+    def __init__(self, identifiant, titre, description, points, difficulte, flag_hash, image_file, tool_used, calculateur_score=None):
         super().__init__(identifiant, titre, description, points, difficulte, flag_hash, calculateur_score)
         self.__image_file = image_file
         self.__tool_used = tool_used
@@ -207,17 +195,17 @@ class DefiStegano(Defi):
     def obtenir_indice(self, attempts_count: int) -> str:
         if attempts_count < 3: return "Le secret se cache dans les pixels..."
         if attempts_count < 6: return f"Essayez d'extraire avec {self.__tool_used}."
-        return f"Commande : {self.__tool_used} extract -sf {self.__image_file} -p [mot_de_passe]"
+        return f"Commande : {self.__tool_used} extract -sf {self.__image_file}"
 
     def en_dictionnaire(self) -> dict:
         return {
-            "id": self._id, "titre": self._titre, "description": self._description,
-            "points": self._points, "difficulte": self._difficulte,
+            "id": self.id, "titre": self.titre, "description": self.description,
+            "points": self.points, "difficulte": self.difficulte,
             "type": "stegano", "fichier": self.__image_file, "outil": self.__tool_used
         }
 
 class DefiCrypto(Defi):
-    def __init__(self, identifiant: str, titre: str, description: str, points: int, difficulte: str, flag_hash: str, cipher_text: str, hints: list, crypto_category: str, calculateur_score: CalculateurScore = None):
+    def __init__(self, identifiant, titre, description, points, difficulte, flag_hash, cipher_text, hints, crypto_category, calculateur_score=None):
         super().__init__(identifiant, titre, description, points, difficulte, flag_hash, calculateur_score)
         self.__cipher_text = cipher_text
         self.__hints = hints
@@ -230,73 +218,17 @@ class DefiCrypto(Defi):
 
     def en_dictionnaire(self) -> dict:
         return {
-            "id": self._id, "titre": self._titre, "description": self._description,
-            "points": self._points, "difficulte": self._difficulte,
+            "id": self.id, "titre": self.titre, "description": self.description,
+            "points": self.points, "difficulte": self.difficulte,
             "type": "crypto", "texte_chiffre": self.__cipher_text, "categorie_crypto": self.__crypto_category
         }
 
 class DefiWeb(Defi):
-    """
-    Défi de type Web / Forensique HTTP.
-    Le joueur analyse des artefacts réseau (logs, tokens JWT, configs)
-    pour reconstituer l'attaque et en extraire le flag.
-    """
-
-    def __init__(
-        self,
-        identifiant: str,
-        titre: str,
-        description: str,
-        points: int,
-        difficulte: str,
-        flag_hash: str,
-        web_category: str,
-        hints: list,
-        evidence_filename: str,
-        calculateur_score: CalculateurScore = None,
-        lab_url: str = None,
-    ):
+    def __init__(self, identifiant, titre, description, points, difficulte, flag_hash, web_category, hints, evidence_filename, calculateur_score=None, lab_url=None):
         super().__init__(identifiant, titre, description, points, difficulte, flag_hash, calculateur_score, lab_url)
-        self.__web_category   = web_category
-        self.__hints          = hints
-        self.__evidence_filename = evidence_filename
-
-    @property
-    def evidence_filename(self) -> str:
-        return self.__evidence_filename
-
-    @property
-    def web_category(self) -> str:
-        return self.__web_category
-
-    def obtenir_indice(self, attempts_count: int) -> str:
-        if not self.__hints:
-            return ""
-        idx = min(attempts_count // 3, len(self.__hints) - 1)
-        return self.__hints[idx]
-
-    def en_dictionnaire(self) -> dict:
-        return {
-            "id":               self._id,
-            "titre":            self._titre,
-            "description":      self._description,
-            "points":           self._points,
-            "difficulte":       self._difficulte,
-            "type":             "web",
-            "categorie_web":    self.__web_category,
-            "evidence_file":    self.__evidence_filename,
-            "lab_url":          self._lab_url,
-        }
-
-class DefiReverse(Defi):
-    def __init__(self, identifiant: str, titre: str, description: str, points: int, difficulte: str, flag_hash: str, binary_filename: str, hints: list, calculateur_score: CalculateurScore = None):
-        super().__init__(identifiant, titre, description, points, difficulte, flag_hash, calculateur_score)
-        self.__binary_filename = binary_filename
+        self.__web_category = web_category
         self.__hints = hints
-
-    @property
-    def binary_filename(self) -> str:
-        return self.__binary_filename
+        self.__evidence_filename = evidence_filename
 
     def obtenir_indice(self, attempts_count: int) -> str:
         if not self.__hints: return ""
@@ -305,64 +237,59 @@ class DefiReverse(Defi):
 
     def en_dictionnaire(self) -> dict:
         return {
-            "id": self._id, "titre": self._titre, "description": self._description,
-            "points": self._points, "difficulte": self._difficulte,
+            "id": self.id, "titre": self.titre, "description": self.description,
+            "points": self.points, "difficulte": self.difficulte,
+            "type": "web", "categorie_web": self.__web_category, "evidence_file": self.__evidence_filename, "lab_url": self.lab_url
+        }
+
+class DefiReverse(Defi):
+    def __init__(self, identifiant, titre, description, points, difficulte, flag_hash, binary_filename, hints, calculateur_score=None):
+        super().__init__(identifiant, titre, description, points, difficulte, flag_hash, calculateur_score)
+        self.__binary_filename = binary_filename
+        self.__hints = hints
+
+    def obtenir_indice(self, attempts_count: int) -> str:
+        if not self.__hints: return ""
+        idx = min(attempts_count // 3, len(self.__hints) - 1)
+        return self.__hints[idx]
+
+    def en_dictionnaire(self) -> dict:
+        return {
+            "id": self.id, "titre": self.titre, "description": self.description,
+            "points": self.points, "difficulte": self.difficulte,
             "type": "reverse", "fichier": self.__binary_filename
         }
 
-class UsineUtilisateur:
-    @staticmethod
-    def creer(user_modele: UserModele) -> Utilisateur:
-        if user_modele.role == "admin":
-            return Administrateur(user_modele)
-        return Participant(user_modele)
-
-
-# ══════════════════════════════════════════════════════
-#  PATRON STATE : ETAT DE RESOLUTION DU DEFI
-# ══════════════════════════════════════════════════════
-
+# State Pattern pour la gestion des tentatives
 class EtatDefi(ABC):
     @abstractmethod
-    def soumettre(self, contexte, tentative: str) -> bool:
-        pass
+    def soumettre(self, contexte, tentative: str) -> bool: pass
 
 class EtatDisponible(EtatDefi):
     def soumettre(self, contexte, tentative: str) -> bool:
         if contexte.defi.valider_flag(tentative):
             contexte.changer_etat(EtatResolu())
             return True
-        else:
-            contexte.incrementer_tentatives()
-            if contexte.tentatives >= 10:
-                contexte.changer_etat(EtatBloque())
-            return False
+        contexte.incrementer_tentatives()
+        if contexte.tentatives >= 10: contexte.changer_etat(EtatBloque())
+        return False
 
 class EtatBloque(EtatDefi):
-    def soumettre(self, contexte, tentative: str) -> bool:
-        raise DefiBloqueException("Trop de tentatives. Ce défi est bloqué pour vous.")
+    def soumettre(self, contexte, tentative: str): 
+        raise DefiBloqueException("Nombre maximal de tentatives atteint. Ce défi est bloqué.")
 
 class EtatResolu(EtatDefi):
-    def soumettre(self, contexte, tentative: str) -> bool:
+    def soumettre(self, contexte, tentative: str): 
         raise DefiDejaResoluException("Vous avez déjà résolu ce défi !")
 
 class ContexteDefi:
-    """Gère le contexte d'un défi pour un utilisateur spécifique selon le patron State."""
     def __init__(self, defi: Defi, tentatives: int, resolu: bool):
         self.defi = defi
         self.tentatives = tentatives
-        if resolu:
-            self.etat = EtatResolu()
-        elif tentatives >= 10:
-            self.etat = EtatBloque()
-        else:
-            self.etat = EtatDisponible()
+        if resolu: self.etat = EtatResolu()
+        elif tentatives >= 10: self.etat = EtatBloque()
+        else: self.etat = EtatDisponible()
 
-    def changer_etat(self, nouvel_etat: EtatDefi):
-        self.etat = nouvel_etat
-
-    def incrementer_tentatives(self):
-        self.tentatives += 1
-
-    def essayer_flag(self, tentative: str) -> bool:
-        return self.etat.soumettre(self, tentative)
+    def changer_etat(self, nouvel_etat: EtatDefi): self.etat = nouvel_etat
+    def incrementer_tentatives(self): self.tentatives += 1
+    def essayer_flag(self, tentative: str) -> bool: return self.etat.soumettre(self, tentative)
