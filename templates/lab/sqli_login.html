@@ -4,45 +4,42 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EST Tétouan — Portail Étudiant</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background: #f0f2f5;
-      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #F8F9FA;
+      font-family: 'Montserrat', sans-serif;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
     }
     .topbar {
-      background: #1a5c38;
+      background: #013E74;
       padding: 0.6rem 2rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
     .topbar-logo { color: white; font-size: 0.85rem; font-weight: 600; letter-spacing: 1px; }
-    .topbar-logo span { color: #7ec8a0; }
+    .topbar-logo span { color: #F05E58; }
     .topbar-links { display: flex; gap: 1.5rem; }
-    .topbar-links a { color: rgba(255,255,255,0.7); font-size: 0.75rem; text-decoration: none; }
+    .topbar-links a { color: rgba(255,255,255,0.8); font-size: 0.75rem; text-decoration: none; font-weight: 600; }
     .topbar-links a:hover { color: white; }
     .header {
       background: white;
-      border-bottom: 3px solid #1a5c38;
+      border-bottom: 3px solid #013E74;
       padding: 1rem 2rem;
       display: flex;
       align-items: center;
       gap: 1.5rem;
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
-    .header-logo {
-      width: 64px; height: 64px;
-      background: #1a5c38;
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      color: white; font-size: 1.4rem; font-weight: 900;
-      letter-spacing: -1px; flex-shrink: 0;
+    .header-logo img {
+      height: 64px;
+      object-fit: contain;
     }
-    .header-text h1 { font-size: 1.1rem; color: #1a5c38; font-weight: 700; }
+    .header-text h1 { font-size: 1.1rem; color: #013E74; font-weight: 700; }
     .header-text p { font-size: 0.78rem; color: #666; margin-top: 2px; }
     .main {
       flex: 1; display: flex;
@@ -50,56 +47,59 @@
       padding: 2rem 1rem;
     }
     .login-container {
-      background: white; border-radius: 10px;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+      background: white; border-radius: 15px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.08);
       width: 100%; max-width: 420px; overflow: hidden;
     }
-    .login-header { background: #1a5c38; padding: 1.25rem 1.5rem; color: white; }
+    .login-header { background: #013E74; padding: 1.25rem 1.5rem; color: white; }
     .login-header h2 { font-size: 1rem; font-weight: 600; margin-bottom: 0.2rem; }
-    .login-header p { font-size: 0.75rem; color: rgba(255,255,255,0.65); }
+    .login-header p { font-size: 0.75rem; color: rgba(255,255,255,0.8); }
     .login-body { padding: 1.75rem 1.5rem; }
     label { display: block; font-size: 0.8rem; color: #444; font-weight: 600; margin-bottom: 0.4rem; }
     input[type=text], input[type=password] {
       width: 100%; border: 1px solid #dde0e6; border-radius: 6px;
       padding: 0.6rem 0.9rem; font-size: 0.9rem; color: #222;
       margin-bottom: 1.1rem; background: #fafbfc;
+      font-family: 'Montserrat', sans-serif;
       transition: border-color 0.2s, box-shadow 0.2s;
     }
     input:focus {
-      outline: none; border-color: #1a5c38;
-      box-shadow: 0 0 0 3px rgba(26,92,56,0.1); background: white;
+      outline: none; border-color: #013E74;
+      box-shadow: 0 0 0 3px rgba(1,62,116,0.15); background: white;
     }
     .btn-login {
-      width: 100%; background: #1a5c38; color: white;
+      width: 100%; background: #F05E58; color: white;
       border: none; border-radius: 6px; padding: 0.75rem;
-      font-size: 0.9rem; font-weight: 600; cursor: pointer;
-      transition: background 0.2s; letter-spacing: 0.5px;
+      font-size: 0.9rem; font-weight: 700; cursor: pointer;
+      font-family: 'Montserrat', sans-serif;
+      transition: background 0.2s, transform 0.1s; letter-spacing: 0.5px;
     }
-    .btn-login:hover { background: #145230; }
+    .btn-login:hover { background: #d9534f; transform: translateY(-1px); }
     .error {
       background: #fff0f2; border: 1px solid #ffcdd5;
       border-radius: 6px; color: #c0392b; font-size: 0.8rem;
       padding: 0.65rem 0.9rem; margin-bottom: 1rem;
       display: flex; align-items: center; gap: 0.5rem;
+      font-weight: 600;
     }
     .error::before { content: "⚠"; }
     .forgot { text-align: center; margin-top: 1rem; font-size: 0.78rem; }
-    .forgot a { color: #1a5c38; text-decoration: none; }
+    .forgot a { color: #013E74; text-decoration: none; font-weight: 600; }
     .info-note {
-      background: #f0f7f3; border-left: 3px solid #1a5c38;
+      background: #f4f8fc; border-left: 3px solid #013E74;
       border-radius: 0 6px 6px 0; padding: 0.7rem 1rem;
-      font-size: 0.75rem; color: #4a7a5a; margin-top: 1.25rem; line-height: 1.5;
+      font-size: 0.75rem; color: #013E74; margin-top: 1.25rem; line-height: 1.5;
     }
     footer {
-      background: #1a5c38; color: rgba(255,255,255,0.6);
-      text-align: center; font-size: 0.7rem; padding: 0.75rem;
+      background: #013E74; color: rgba(255,255,255,0.7);
+      text-align: center; font-size: 0.7rem; padding: 1rem;
     }
-    footer span { color: rgba(255,255,255,0.9); }
+    footer span { color: white; font-weight: 600; }
   </style>
 </head>
 <body>
   <div class="topbar">
-    <div class="topbar-logo"><span>EST</span> TÉTOUAN — Université Abdelmalek Essaâdi</div>
+    <div class="topbar-logo"><span>EST</span> TÉTOUAN</div>
     <div class="topbar-links">
       <a href="#">Accueil</a>
       <a href="#">Contact</a>
@@ -108,9 +108,11 @@
   </div>
 
   <div class="header">
-    <div class="header-logo">EST</div>
+    <div class="header-logo">
+      <img src="https://www.est.uae.ma/assets/img/logo.png" alt="EST Tetouan Logo">
+    </div>
     <div class="header-text">
-      <h1>École Supérieure de Technologie — Tétouan</h1>
+      <h1>École Supérieure de Technologie de Tétouan</h1>
       <p>Portail Académique Étudiant · Système d'Information</p>
     </div>
   </div>
@@ -135,7 +137,7 @@
           <label>Mot de passe</label>
           <input type="password" name="password" placeholder="Votre mot de passe">
 
-          <button type="submit" class="btn-login">Se connecter →</button>
+          <button type="submit" class="btn-login">Candidater Maintenant →</button>
         </form>
 
         <div class="forgot"><a href="#">Mot de passe oublié ?</a></div>
@@ -148,6 +150,6 @@
     </div>
   </div>
 
-  <footer>© 2024 <span>EST Tétouan</span> · Université Abdelmalek Essaâdi · Tous droits réservés</footer>
+  <footer>© 2026 <span>École Supérieure de Technologie de Tétouan</span>. Tous droits réservés.</footer>
 </body>
 </html>
