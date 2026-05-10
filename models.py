@@ -160,7 +160,7 @@ class Administrateur(Utilisateur):
         return "admin"
 
 class Defi(ABC):
-    def __init__(self, identifiant: str, titre: str, description: str, points: int, difficulte: str, flag_hash: str, calculateur_score: CalculateurScore = None):
+    def __init__(self, identifiant: str, titre: str, description: str, points: int, difficulte: str, flag_hash: str, calculateur_score: CalculateurScore = None, lab_url: str = None):
         self._id = identifiant
         self._titre = titre
         self._description = description
@@ -168,6 +168,7 @@ class Defi(ABC):
         self._difficulte = difficulte
         self._flag_hash = flag_hash
         self._calculateur_score = calculateur_score or ScoreClassique()
+        self._lab_url = lab_url
 
     @property
     def id(self) -> str: return self._id
@@ -179,6 +180,8 @@ class Defi(ABC):
     def points(self) -> int: return self._points
     @property
     def difficulte(self) -> str: return self._difficulte
+    @property
+    def lab_url(self) -> str: return self._lab_url
 
     def valider_flag(self, tentative: str) -> bool:
         return hashlib.sha256(tentative.strip().encode()).hexdigest() == self._flag_hash
@@ -251,8 +254,9 @@ class DefiWeb(Defi):
         hints: list,
         evidence_filename: str,
         calculateur_score: CalculateurScore = None,
+        lab_url: str = None,
     ):
-        super().__init__(identifiant, titre, description, points, difficulte, flag_hash, calculateur_score)
+        super().__init__(identifiant, titre, description, points, difficulte, flag_hash, calculateur_score, lab_url)
         self.__web_category   = web_category
         self.__hints          = hints
         self.__evidence_filename = evidence_filename
@@ -281,6 +285,7 @@ class DefiWeb(Defi):
             "type":             "web",
             "categorie_web":    self.__web_category,
             "evidence_file":    self.__evidence_filename,
+            "lab_url":          self._lab_url,
         }
 
 class UsineUtilisateur:

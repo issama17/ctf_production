@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>EST Tétouan — Espace Administrateur</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #f0f2f5; font-family: 'Segoe UI', Arial, sans-serif; min-height: 100vh; }
+    .navbar {
+      background: #1a5c38; padding: 0 2rem;
+      display: flex; align-items: center; justify-content: space-between; height: 52px;
+    }
+    .navbar-brand { color: white; font-weight: 700; font-size: 0.95rem; letter-spacing: 1px; }
+    .navbar-brand span { color: #7ec8a0; }
+    .navbar-user { color: rgba(255,255,255,0.8); font-size: 0.8rem; display: flex; align-items: center; gap: 0.75rem; }
+    .badge-admin {
+      background: #ff3366; color: white; font-size: 0.65rem;
+      padding: 0.15rem 0.5rem; border-radius: 3px; font-weight: 700; letter-spacing: 1px;
+    }
+    .pwned-banner {
+      background: linear-gradient(135deg, #0d3320, #1a5c38);
+      border-bottom: 2px solid #00e676;
+      padding: 0.9rem 2rem; display: flex; align-items: center; gap: 1rem;
+    }
+    .pwned-banner .icon { font-size: 1.4rem; }
+    .pwned-banner h3 { color: #00e676; font-size: 0.9rem; font-family: 'Courier New', monospace; letter-spacing: 2px; }
+    .pwned-banner p { color: rgba(0,230,118,0.6); font-size: 0.72rem; font-family: 'Courier New', monospace; }
+    .flag-section {
+      background: #0d1f14; border: 1px solid #00e676;
+      border-radius: 8px; padding: 1.25rem 1.5rem;
+      margin: 1.25rem; text-align: center;
+    }
+    .flag-label { font-family: 'Courier New', monospace; font-size: 0.65rem; color: #3a6a4a; letter-spacing: 3px; margin-bottom: 0.5rem; }
+    .flag-value { font-family: 'Courier New', monospace; font-size: 1.1rem; color: #00e676; letter-spacing: 1px; word-break: break-all; }
+    .dashboard { padding: 0 1.25rem 1.25rem; }
+    .welcome-card {
+      background: white; border-radius: 8px; padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem; border-left: 4px solid #1a5c38;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .welcome-card h2 { font-size: 1rem; color: #1a5c38; margin-bottom: 0.3rem; }
+    .welcome-card p { font-size: 0.82rem; color: #666; }
+    .cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem; }
+    .info-card { background: white; border-radius: 8px; padding: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .info-card h4 { font-size: 0.72rem; color: #999; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.4rem; }
+    .info-card p { font-size: 0.9rem; color: #222; font-weight: 600; }
+    .table-card { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 1rem; }
+    .table-card-header { background: #f7f8fa; padding: 0.75rem 1rem; font-size: 0.78rem; font-weight: 600; color: #444; border-bottom: 1px solid #eee; font-family: 'Courier New', monospace; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #f7f8fa; color: #888; font-size: 0.68rem; letter-spacing: 1px; text-transform: uppercase; padding: 0.6rem 0.9rem; text-align: left; border-bottom: 1px solid #eee; }
+    td { padding: 0.55rem 0.9rem; font-size: 0.78rem; color: #555; border-bottom: 1px solid #f5f5f5; }
+    tr:first-child td { color: #c0392b; font-weight: 600; }
+    .reset-link { display: block; text-align: center; color: #999; font-size: 0.72rem; text-decoration: none; padding: 0.5rem; }
+    .reset-link:hover { color: #1a5c38; }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <div class="navbar-brand"><span>EST</span> TÉTOUAN · Portail Académique</div>
+    <div class="navbar-user">
+      <span>admin@est.ac.ma</span>
+      <span class="badge-admin">ADMIN</span>
+    </div>
+  </div>
+
+  <div class="pwned-banner">
+    <div class="icon">⚡</div>
+    <div>
+      <h3>SQL INJECTION — AUTHENTIFICATION BYPASSÉE</h3>
+      <p>Accès administrateur obtenu via injection SQL · Session compromise</p>
+    </div>
+  </div>
+
+  <div class="flag-section">
+    <div class="flag-label">// FLAG RÉCUPÉRÉ DEPUIS LA BASE DE DONNÉES</div>
+    <div class="flag-value">{{ flag }}</div>
+  </div>
+
+  <div class="dashboard">
+    <div class="welcome-card">
+      <h2>Bienvenue sur le Portail Administrateur — EST Tétouan</h2>
+      <p>Vous avez accès à toutes les données étudiantes et administratives
+         grâce à l'exploitation d'une vulnérabilité SQL Injection.</p>
+    </div>
+
+    <div class="cards-grid">
+      <div class="info-card"><h4>Étudiants inscrits</h4><p>1 247</p></div>
+      <div class="info-card"><h4>Filière compromise</h4><p>CASI · GI · GC</p></div>
+      <div class="info-card"><h4>Année académique</h4><p>2024 — 2025</p></div>
+      <div class="info-card"><h4>Accès niveau</h4><p style="color:#c0392b;">ROOT ADMIN</p></div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-card-header">// SELECT * FROM users; — Données extraites</div>
+      <table>
+        <tr>
+          <th>CNE</th><th>Nom complet</th><th>Email</th><th>Rôle</th><th>Password hash</th>
+        </tr>
+        <tr>
+          <td>ADMIN</td><td>Administrateur Système</td><td>admin@est.ac.ma</td>
+          <td style="color:#c0392b;">ADMIN</td>
+          <td style="font-family:monospace;font-size:0.7rem;">5f4dcc3b5aa765d61d8327deb882cf99</td>
+        </tr>
+        <tr>
+          <td>E220045678</td><td>Youssef El Amrani</td><td>y.elamrani@est.ac.ma</td>
+          <td>Étudiant</td>
+          <td style="font-family:monospace;font-size:0.7rem;">e10adc3949ba59abbe56e057f20f883e</td>
+        </tr>
+        <tr>
+          <td>E220038291</td><td>Fatima Zahra Benali</td><td>f.benali@est.ac.ma</td>
+          <td>Étudiant</td>
+          <td style="font-family:monospace;font-size:0.7rem;">d8578edf8458ce06fbc5bb76a58c5ca4</td>
+        </tr>
+        <tr>
+          <td>P190012</td><td>Prof. Hassan Idrissi</td><td>h.idrissi@est.ac.ma</td>
+          <td>Professeur</td>
+          <td style="font-family:monospace;font-size:0.7rem;">827ccb0eea8a706c4c34a16891f84e7b</td>
+        </tr>
+      </table>
+    </div>
+
+    <a href="/lab/sqli/reset" class="reset-link">↩ Réinitialiser le lab</a>
+  </div>
+</body>
+</html>

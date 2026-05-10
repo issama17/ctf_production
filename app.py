@@ -234,6 +234,26 @@ def _initialiser_defis(service_ctf: ServiceCTF):
         calculateur_score=ScoreDegressif(),
     ))
 
+    service_ctf.enregistrer_defi(DefiWeb(
+        identifiant="sqli-login-bypass",
+        titre="SQL Injection — Login Bypass",
+        description=(
+            "Une vulnérabilité SQL Injection a été détectée sur le portail "
+            "académique de l'EST Tétouan. Le système d'authentification construit ses "
+            "requêtes SQL par concaténation de chaînes — une erreur fatale.<br><br>"
+            "Exploitez cette faille pour accéder au panneau d'administration et "
+            "récupérez le flag caché dans la base de données.<br><br>"
+            "<code class='text-pink'>🎯 Target : Portail EST Tétouan</code>"
+        ),
+        points=200,
+        difficulte="Moyen",
+        flag_hash=os.getenv("FLAG_SQLI_HASH", "16f5d2855231312c27d06d9781f12c09dfba6b79da0c5f1cd7295a888c69806a"),
+        web_category="SQL Injection",
+        hints=[],
+        evidence_filename=None,
+        lab_url="/lab/sqli/login"
+    ))
+
 class ApplicationCTF:
     def __init__(self):
         self._app = create_app()

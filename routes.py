@@ -7,7 +7,7 @@ import cloudinary.uploader
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import Forbidden
 
-from flask import render_template, request, jsonify, send_from_directory, redirect, url_for, flash, current_app
+from flask import render_template, request, jsonify, send_from_directory, redirect, url_for, flash, current_app, session
 from flask_login import login_user, logout_user, login_required, current_user
 
 from exceptions import FlagIncorrectException
@@ -224,3 +224,35 @@ def register_routes(app, service_auth, service_ctf, user_repo):
             "top_score": utilisateurs[0].score if utilisateurs else 0
         }
         return render_template("admin.html", utilisateurs=utilisateurs, stats=stats)
+
+    @app.route("/lab/sqli/login", methods=["GET", "POST"])
+    def lab_sqli_login():
+        if request.method == "POST":
+            username = request.form.get("username", "")
+            password = request.form.get("password", "")
+            
+            sqli_patterns = ["'--", "' --", "' or ", "' OR ", 
+                             "1=1", "OR 1", "or 1", "\"--", "admin'"]
+            is_sqli = any(p in username for p in sqli_patterns)
+            
+            if is_sqli:
+                session["lab_sqli_pwned"] = True
+                return redirect(url_for("lab_sqli_admin"))
+            else:
+                session["lab_sqli_pwned"] = False
+                return render_template("lab/sqli_login.html", error="Identifiants incorrects")
+        
+        return render_template("lab/sqli_login.html", error=None)
+
+    @app.route("/lab/sqli/admin")
+    def lab_sqli_admin():
+        if not session.get("lab_sqli_pwned"):
+            return redirect(url_for("lab_sqli_login"))
+        flag = os.getenv("FLAG_SQLI", "CTF{CHANGEME_EN_PROD}")
+        return render_template("lab/sqli_admin.html", flag=flag)
+
+    @app.route("/lab/sqli/reset")
+    def lab_sqli_reset():
+        session.pop("lab_sqli_pwned", None)
+        return redirect(url_for("lab_sqli_login"))
+
