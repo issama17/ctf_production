@@ -33,6 +33,42 @@ class ApplicationCTF:
         self.__init_db()
         self.__init_services()
         self.__init_auth()
+        self.__appliquer_migrations()
+
+    def __appliquer_migrations(self):
+        """Applique les migrations et crée les tables dans le contexte Flask."""
+        with self.__app.app_context():
+            db.create_all()
+            # Patch automatique pour Railway (PostgreSQL / SQLite)
+            try:
+                from sqlalchemy import text
+                # 1. Renommer 'filiere' en 'statut' s'il existe
+                try:
+                    with db.engine.connect() as conn:
+                        conn.execute(text("ALTER TABLE users RENAME COLUMN filiere TO statut"))
+                        conn.commit()
+                except Exception: pass
+                
+                # 2. Ajouter 'statut' s'il n'existe pas
+                try: 
+                    with db.engine.connect() as conn:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN statut VARCHAR(64) DEFAULT 'Étudiant'"))
+                        conn.commit()
+                except Exception: pass
+                    
+                # 3. Ajouter 'experience' s'il n'existe pas
+                try: 
+                    with db.engine.connect() as conn:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN experience VARCHAR(32) DEFAULT 'Débutant'"))
+                        conn.commit()
+                except Exception: pass
+            except Exception as e:
+                logging.getLogger("db_patch").error(f"Erreur migration: {e}")
+
+    @property
+    def app(self):
+        """Expose l'instance Flask pour le serveur WSGI."""
+        return self.__app
 
     def __configurer_app(self):
         self.__app.secret_key = os.getenv("SECRET_KEY", secrets.token_hex(32))
