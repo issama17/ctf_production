@@ -174,6 +174,8 @@ def register_routes(app, service_auth, service_ctf, user_repo):
             return render_template("defi_crypto.html", defi=d, id=identifiant, deja_resolu=deja)
         elif d["type"] == "web":
             return render_template("defi_web.html", defi=d, id=identifiant, deja_resolu=deja)
+        elif d["type"] == "reverse":
+            return render_template("defi_reverse.html", defi=d, id=identifiant, deja_resolu=deja)
         return render_template("defi.html", defi=d, id=identifiant, deja_resolu=deja)
 
     @app.route("/api/soumettre", methods=["POST"])

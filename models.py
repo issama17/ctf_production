@@ -288,6 +288,28 @@ class DefiWeb(Defi):
             "lab_url":          self._lab_url,
         }
 
+class DefiReverse(Defi):
+    def __init__(self, identifiant: str, titre: str, description: str, points: int, difficulte: str, flag_hash: str, binary_filename: str, hints: list, calculateur_score: CalculateurScore = None):
+        super().__init__(identifiant, titre, description, points, difficulte, flag_hash, calculateur_score)
+        self.__binary_filename = binary_filename
+        self.__hints = hints
+
+    @property
+    def binary_filename(self) -> str:
+        return self.__binary_filename
+
+    def obtenir_indice(self, attempts_count: int) -> str:
+        if not self.__hints: return ""
+        idx = min(attempts_count // 3, len(self.__hints) - 1)
+        return self.__hints[idx]
+
+    def en_dictionnaire(self) -> dict:
+        return {
+            "id": self._id, "titre": self._titre, "description": self._description,
+            "points": self._points, "difficulte": self._difficulte,
+            "type": "reverse", "fichier": self.__binary_filename
+        }
+
 class UsineUtilisateur:
     @staticmethod
     def creer(user_modele: UserModele) -> Utilisateur:

@@ -9,7 +9,7 @@ import cloudinary
 from flask import Flask
 from flask_login import LoginManager
 
-from models import db, DefiStegano, DefiCrypto, DefiWeb, ScoreClassique, ScoreDegressif
+from models import db, DefiStegano, DefiCrypto, DefiWeb, ScoreClassique, ScoreDegressif, DefiReverse
 from repository import UtilisateurRepository, DefiRepository
 from services import ServiceAuth, ServiceCTF, AuditLogObservateur, BadgeObservateur
 from routes import register_routes
@@ -253,6 +253,27 @@ def _initialiser_defis(service_ctf: ServiceCTF):
         hints=[],
         evidence_filename=None,
         lab_url="/lab/sqli/login"
+    ))
+
+    service_ctf.enregistrer_defi(DefiReverse(
+        identifiant="rev_01",
+        titre="Rev Challenge",
+        description=(
+            "Un binaire ELF 64-bit strippé (sans symboles) qui vous demande un flag. "
+            "Le flag est encodé par XOR et décodé à la volée juste avant la comparaison. "
+            "Votre mission : intercepter le flag décodé depuis le registre <code>%rsi</code> "
+            "lors de l'instruction de comparaison (offset <code>0x1427</code> par rapport à la base)."
+        ),
+        points=300,
+        difficulte="Moyen",
+        flag_hash="58d295fbba51da4dbf961dfe64edd48dddd04175e881868c4edbda0cf1356ba8",
+        binary_filename="chall",
+        hints=[
+            "Le binaire est PIE — l'adresse de base change à chaque exécution. Vérifiez <code>info proc mappings</code> dans GDB.",
+            "La comparaison a lieu à l'offset <code>0x1427</code>. Placez un point d'arrêt (breakpoint) à cet endroit.",
+            "Une fois le breakpoint atteint, inspectez <code>$rsi</code> avec <code>x/s $rsi</code> pour lire le flag décodé."
+        ],
+        calculateur_score=ScoreDegressif()
     ))
 
 class ApplicationCTF:
