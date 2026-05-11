@@ -10,6 +10,7 @@ import cloudinary
 from flask import Flask
 from flask_login import LoginManager
 from authlib.integrations.flask_client import OAuth
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from models import db, DefiStegano, DefiCrypto, DefiWeb, ScoreClassique, ScoreDegressif, DefiReverse
 from repository import UtilisateurRepository, DefiRepository
@@ -30,6 +31,9 @@ class ApplicationCTF:
     """Classe principale représentant l'application (Patron Façade / Composition)."""
     def __init__(self):
         self.__app = Flask(__name__, template_folder='templates', static_folder='static')
+        # Fix pour Railway (HTTPS derrière un proxy)
+        self.__app.wsgi_app = ProxyFix(self.__app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+        
         self.__configurer_app()
         self.__init_db()
         self.__init_services()
