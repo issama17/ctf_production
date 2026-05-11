@@ -3,6 +3,7 @@ Couche de Présentation (Routes)
 """
 import os
 import logging
+import secrets
 import cloudinary.uploader
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import Forbidden
@@ -12,7 +13,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 
 from exceptions import FlagIncorrectException
 
-def register_routes(app, service_auth, service_ctf, user_repo):
+def register_routes(app, service_auth, service_ctf, user_repo, oauth):
     
     ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
     
@@ -70,6 +71,56 @@ def register_routes(app, service_auth, service_ctf, user_repo):
         logout_user()
         flash("Déconnexion réussie.", "info")
         return redirect(url_for("login"))
+
+    # ══════════════════════════════════════════════════════
+    #  OAUTH GOOGLE
+    # ══════════════════════════════════════════════════════
+
+    @app.route("/login/google")
+    def login_google():
+        # L'URL de redirection doit être configurée dans la console Google Cloud
+        # ex: https://votre-app.up.railway.app/google/auth
+        redirect_uri = url_for("google_auth", _external=True)
+        return oauth.google.authorize_redirect(redirect_uri)
+
+    @app.route("/google/auth")
+    def google_auth():
+        try:
+            token = oauth.google.authorize_access_token()
+            user_info = oauth.google.get('https://www.googleapis.com/oauth2/v3/userinfo').json()
+        except Exception as e:
+            flash("Erreur d'authentification Google.", "danger")
+            logging.error(f"OAuth Error: {e}")
+            return redirect(url_for("login"))
+
+        email = user_info.get("email")
+        name = user_info.get("name") or email.split("@")[0]
+        picture = user_info.get("picture")
+
+        # Chercher l'utilisateur par email
+        user_row = user_repo.obtenir_par_email(email)
+        
+        if not user_row:
+            # Créer un compte s'il n'existe pas
+            # On génère un mot de passe aléatoire car le modèle l'exige
+            random_pwd = secrets.token_urlsafe(16)
+            res = service_auth.inscrire(name, email, random_pwd)
+            if not res["succes"]:
+                flash("Impossible de créer votre compte via Google.", "danger")
+                return redirect(url_for("login"))
+            user_row = user_repo.obtenir_par_email(email)
+            
+            # Mettre à jour la photo de profil si fournie par Google
+            if picture:
+                user_repo.mettre_a_jour_photo(user_row.id, picture)
+
+        # Connecter l'utilisateur
+        from models import UsineUtilisateur
+        utilisateur = UsineUtilisateur.creer(user_row)
+        login_user(utilisateur, remember=True)
+        
+        flash(f"Bienvenue, {utilisateur.username} !", "success")
+        return redirect(url_for("index"))
 
     @app.route("/profil")
     @login_required

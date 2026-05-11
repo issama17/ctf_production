@@ -9,6 +9,7 @@ import base64
 import cloudinary
 from flask import Flask
 from flask_login import LoginManager
+from authlib.integrations.flask_client import OAuth
 
 from models import db, DefiStegano, DefiCrypto, DefiWeb, ScoreClassique, ScoreDegressif, DefiReverse
 from repository import UtilisateurRepository, DefiRepository
@@ -111,7 +112,17 @@ class ApplicationCTF:
         def charger_utilisateur(uid):
             return self.__service_auth.charger_utilisateur(int(uid))
 
-        register_routes(self.__app, self.__service_auth, self.__service_ctf, self.__user_repo)
+        # Configuration OAuth
+        self.__oauth = OAuth(self.__app)
+        self.__oauth.register(
+            name='google',
+            client_id=os.getenv("GOOGLE_CLIENT_ID"),
+            client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+            server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+            client_kwargs={'scope': 'openid email profile'}
+        )
+
+        register_routes(self.__app, self.__service_auth, self.__service_ctf, self.__user_repo, self.__oauth)
 
     def __initialiser_defis(self):
         s = self.__service_ctf

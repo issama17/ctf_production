@@ -33,9 +33,18 @@
                placeholder="••••••••" required/>
       </div>
 
-      <button type="submit" class="btn-ctf-full">
+      <button type="submit" class="btn-ctf-full mb-3">
         <i class="bi bi-box-arrow-in-right me-2"></i>Se connecter
       </button>
+
+      <div class="text-center my-3">
+        <span class="text-dim font-mono" style="font-size: .8rem;">OU</span>
+      </div>
+
+      <a href="{{ url_for('login_google') }}" class="btn-ctf-full" style="background: white; color: #333; border: 1px solid #ddd;">
+        <img src="https://www.google.com/favicon.ico" class="me-2" style="width:16px;">
+        Se connecter avec Google
+      </a>
     </form>
 
     <div class="divider"></div>
