@@ -78,6 +78,10 @@ def register_routes(app, service_auth, service_ctf, user_repo, oauth):
 
     @app.route("/login/google")
     def login_google():
+        # Capturer les options choisies par l'utilisateur (Statut et Expérience)
+        session['google_statut'] = request.args.get('statut', 'Étudiant')
+        session['google_experience'] = request.args.get('experience', 'Débutant')
+        
         # L'URL de redirection doit être configurée dans la console Google Cloud
         # ex: https://votre-app.up.railway.app/google/auth
         
@@ -105,14 +109,17 @@ def register_routes(app, service_auth, service_ctf, user_repo, oauth):
         name = user_info.get("name") or email.split("@")[0]
         picture = user_info.get("picture")
 
+        # Récupérer les options depuis la session (ou valeurs par défaut)
+        statut = session.pop('google_statut', 'Étudiant')
+        experience = session.pop('google_experience', 'Débutant')
+
         # Chercher l'utilisateur par email
         user_row = user_repo.obtenir_par_email(email)
         
         if not user_row:
             # Créer un compte s'il n'existe pas
-            # On génère un mot de passe aléatoire car le modèle l'exige
             random_pwd = secrets.token_urlsafe(16)
-            res = service_auth.inscrire(name, email, random_pwd)
+            res = service_auth.inscrire(name, email, random_pwd, statut=statut, experience=experience)
             if not res["succes"]:
                 flash("Impossible de créer votre compte via Google.", "danger")
                 return redirect(url_for("login"))
