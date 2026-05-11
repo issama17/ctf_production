@@ -80,7 +80,15 @@ def register_routes(app, service_auth, service_ctf, user_repo, oauth):
     def login_google():
         # L'URL de redirection doit être configurée dans la console Google Cloud
         # ex: https://votre-app.up.railway.app/google/auth
-        redirect_uri = url_for("google_auth", _external=True)
+        
+        # On utilise CTF_URL si défini pour forcer l'URL externe correcte
+        ctf_url = os.getenv("CTF_URL")
+        if ctf_url:
+            redirect_uri = f"{ctf_url.rstrip('/')}{url_for('google_auth')}"
+        else:
+            redirect_uri = url_for("google_auth", _external=True)
+            
+        logging.info(f"OAuth Redirect URI: {redirect_uri}")
         return oauth.google.authorize_redirect(redirect_uri)
 
     @app.route("/google/auth")

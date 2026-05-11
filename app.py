@@ -77,9 +77,18 @@ class ApplicationCTF:
 
     def __configurer_app(self):
         self.__app.secret_key = os.getenv("SECRET_KEY", secrets.token_hex(32))
-        self.__app.config["SESSION_COOKIE_SECURE"] = os.getenv("FLASK_ENV") == "production"
+        
+        # Détection de l'environnement de production
+        is_prod = os.getenv("FLASK_ENV") == "production"
+        
+        self.__app.config["SESSION_COOKIE_SECURE"] = is_prod
         self.__app.config["SESSION_COOKIE_HTTPONLY"] = True
         self.__app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+        
+        # Forcer le schéma HTTPS en production pour les redirections OAuth
+        if is_prod:
+            self.__app.config["PREFERRED_URL_SCHEME"] = "https"
+            
         self.__app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
         
         database_url = os.getenv("DATABASE_URL", "sqlite:///ctf_platform.db")
