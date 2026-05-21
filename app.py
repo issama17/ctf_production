@@ -91,7 +91,7 @@ class ApplicationCTF:
             
         self.__app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
         
-        database_url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL") or "sqlite:///ctf_platform.db"
+        database_url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL") or os.getenv("STORAGE_URL") or "sqlite:///ctf_platform.db"
         if database_url.startswith("postgres://"):
             database_url = database_url.replace("postgres://", "postgresql://", 1)
         self.__app.config["SQLALCHEMY_DATABASE_URI"] = database_url
