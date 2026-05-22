@@ -208,10 +208,18 @@ def register_routes(app, service_auth, service_ctf, user_repo, oauth):
                 logging.getLogger("security").warning(
                     f"\n[SECURITY] Password reset link for {email}:\n{reset_url}\n"
                 )
+                # Tenter d'envoyer l'e-mail automatique
+                if service_auth.envoyer_email_reinitialisation(email, reset_url):
+                    flash(
+                        "Si l'adresse email existe, un lien de réinitialisation de mot de passe vous a été envoyé par e-mail.", 
+                        "info"
+                    )
+                    return redirect(url_for("login"))
             
             flash(
                 "Si l'adresse email existe, une demande de réinitialisation a été enregistrée. "
-                "Veuillez contacter l'administrateur pour obtenir votre lien (disponible dans les logs de l'application).", 
+                "Si vous ne recevez pas d'e-mail d'ici quelques minutes (ou si le service SMTP n'est pas configuré), "
+                "veuillez contacter l'administrateur pour obtenir votre lien.", 
                 "info"
             )
             return redirect(url_for("login"))
