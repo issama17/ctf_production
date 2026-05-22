@@ -187,42 +187,42 @@ class ServiceCTF:
 
     def enregistrer_defi(self, defi: Defi):
         m = self.__challenge_repo.obtenir_par_id(defi.id)
-        if not m:
-            from models import ChallengeModele, ScoreDegressif
-            import json
-            
-            category = ""
-            image_file = None
-            tool_used = None
-            cipher_text = None
-            hints = []
-            crypto_category = None
-            web_category = None
-            evidence_filename = None
-            binary_filename = None
-            
-            from models import DefiStegano, DefiCrypto, DefiWeb, DefiReverse
-            if isinstance(defi, DefiStegano):
-                category = "stegano"
-                image_file = defi._DefiStegano__image_file
-                tool_used = defi._DefiStegano__tool_used
-            elif isinstance(defi, DefiCrypto):
-                category = "crypto"
-                cipher_text = defi._DefiCrypto__cipher_text
-                hints = defi._DefiCrypto__hints
-                crypto_category = defi._DefiCrypto__crypto_category
-            elif isinstance(defi, DefiWeb):
-                category = "web"
-                web_category = defi._DefiWeb__web_category
-                hints = defi._DefiWeb__hints
-                evidence_filename = defi._DefiWeb__evidence_filename
-            elif isinstance(defi, DefiReverse):
-                category = "reverse"
-                binary_filename = defi._DefiReverse__binary_filename
-                hints = defi._DefiReverse__hints
+        from models import ChallengeModele, ScoreDegressif
+        import json
+        
+        category = ""
+        image_file = None
+        tool_used = None
+        cipher_text = None
+        hints = []
+        crypto_category = None
+        web_category = None
+        evidence_filename = None
+        binary_filename = None
+        
+        from models import DefiStegano, DefiCrypto, DefiWeb, DefiReverse
+        if isinstance(defi, DefiStegano):
+            category = "stegano"
+            image_file = defi._DefiStegano__image_file
+            tool_used = defi._DefiStegano__tool_used
+        elif isinstance(defi, DefiCrypto):
+            category = "crypto"
+            cipher_text = defi._DefiCrypto__cipher_text
+            hints = defi._DefiCrypto__hints
+            crypto_category = defi._DefiCrypto__crypto_category
+        elif isinstance(defi, DefiWeb):
+            category = "web"
+            web_category = defi._DefiWeb__web_category
+            hints = defi._DefiWeb__hints
+            evidence_filename = defi._DefiWeb__evidence_filename
+        elif isinstance(defi, DefiReverse):
+            category = "reverse"
+            binary_filename = defi._DefiReverse__binary_filename
+            hints = defi._DefiReverse__hints
 
-            calc_type = "degressif" if isinstance(defi._Defi__calculateur_score, ScoreDegressif) else "classique"
-            
+        calc_type = "degressif" if isinstance(defi._Defi__calculateur_score, ScoreDegressif) else "classique"
+        
+        if not m:
             m = ChallengeModele(
                 id=defi.id,
                 titre=defi.titre,
@@ -243,6 +243,25 @@ class ServiceCTF:
                 calculateur_type=calc_type
             )
             self.__challenge_repo.sauvegarder(m)
+        else:
+            m.titre = defi.titre
+            m.description = defi.description
+            m.points = defi.points
+            m.difficulte = defi.difficulte
+            m.flag_hash = defi._Defi__flag_hash
+            m.category = category
+            m.image_file = image_file
+            m.tool_used = tool_used
+            m.cipher_text = cipher_text
+            m.hints = json.dumps(hints)
+            m.crypto_category = crypto_category
+            m.web_category = web_category
+            m.evidence_filename = evidence_filename
+            m.lab_url = defi.lab_url
+            m.binary_filename = binary_filename
+            m.calculateur_type = calc_type
+            from models import db
+            db.session.commit()
 
     def obtenir_defi(self, challenge_id: str) -> Defi:
         m = self.__challenge_repo.obtenir_par_id(challenge_id)
@@ -275,6 +294,7 @@ class ServiceCTF:
         d["resolu"] = self.__challenge_repo.a_resolu(user_id, challenge_id)
         d["tentatives"] = self.__challenge_repo.obtenir_tentatives(user_id, challenge_id)
         d["bloque"] = d["tentatives"] >= 10
+        d["indice"] = defi.obtenir_indice(d["tentatives"])
         return d
 
     def soumettre_flag(self, challenge_id: str, attempt: str, user_id: int) -> dict:

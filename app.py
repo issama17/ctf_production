@@ -271,7 +271,7 @@ class ApplicationCTF:
                 "<code class='text-pink'>🎯 Target : Portail EST Tétouan</code>"
             ),
             points=200, difficulte="Moyen",
-            flag_hash=os.getenv("FLAG_SQLI_HASH", "16f5d2855231312c27d06d9781f12c09dfba6b79da0c5f1cd7295a888c69806a"),
+            flag_hash=os.getenv("FLAG_SQLI_HASH", "470e9f47f3e0127e9e18f31262cda6b64ee10e3b4d85baab9335d58cc06f3939"),
             web_category="SQL Injection", hints=[], evidence_filename=None, lab_url="/lab/sqli/login"
         ))
 

@@ -7,6 +7,7 @@ import secrets
 import cloudinary.uploader
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import Forbidden
+from urllib.parse import urlparse, urljoin
 
 from flask import render_template, request, jsonify, send_from_directory, redirect, url_for, flash, current_app, session
 from flask_login import login_user, logout_user, login_required, current_user
@@ -58,8 +59,15 @@ def register_routes(app, service_auth, service_ctf, user_repo, oauth):
             if res["succes"]:
                 login_user(res["utilisateur"], remember=True)
                 next_page = request.args.get("next")
-                if next_page and not next_page.startswith('/'):
-                    next_page = url_for("index")
+                if next_page:
+                    url_clean = next_page.replace('\\', '/')
+                    if url_clean.startswith('//'):
+                        next_page = url_for("index")
+                    else:
+                        ref_url = urlparse(request.host_url)
+                        test_url = urlparse(urljoin(request.host_url, next_page))
+                        if not (test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc):
+                            next_page = url_for("index")
                 return redirect(next_page or url_for("index"))
             flash(res["message"], "danger")
             
@@ -473,6 +481,7 @@ def register_routes(app, service_auth, service_ctf, user_repo, oauth):
         return redirect(url_for("admin_challenges"))
 
     @app.route("/lab/sqli/login", methods=["GET", "POST"])
+    @login_required
     def lab_sqli_login():
         if request.method == "POST":
             username = request.form.get("username", "")
@@ -492,6 +501,7 @@ def register_routes(app, service_auth, service_ctf, user_repo, oauth):
         return render_template("lab/sqli_login.html", error=None)
 
     @app.route("/lab/sqli/admin")
+    @login_required
     def lab_sqli_admin():
         if not session.get("lab_sqli_pwned"):
             return redirect(url_for("lab_sqli_login"))
@@ -504,6 +514,7 @@ def register_routes(app, service_auth, service_ctf, user_repo, oauth):
         return render_template("lab/sqli_admin.html", flag=encrypted_flag)
 
     @app.route("/lab/sqli/reset")
+    @login_required
     def lab_sqli_reset():
         session.pop("lab_sqli_pwned", None)
         return redirect(url_for("lab_sqli_login"))
