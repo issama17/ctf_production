@@ -179,7 +179,7 @@ class UsineUtilisateur:
 
 class UsineDefi:
     @staticmethod
-    def creer(m: ChallengeModele) -> Defi:
+    def creer(m: ChallengeModele) -> 'Defi':
         import json
         calc = ScoreDegressif() if m.calculateur_type == "degressif" else ScoreClassique()
         
