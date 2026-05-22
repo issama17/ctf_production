@@ -186,14 +186,76 @@ class ServiceCTF:
             obs.notifier(evenement, user_id, defi, data)
 
     def enregistrer_defi(self, defi: Defi):
-        self.__defis[defi.id] = defi
+        m = self.__challenge_repo.obtenir_par_id(defi.id)
+        if not m:
+            from models import ChallengeModele, ScoreDegressif
+            import json
+            
+            category = ""
+            image_file = None
+            tool_used = None
+            cipher_text = None
+            hints = []
+            crypto_category = None
+            web_category = None
+            evidence_filename = None
+            binary_filename = None
+            
+            from models import DefiStegano, DefiCrypto, DefiWeb, DefiReverse
+            if isinstance(defi, DefiStegano):
+                category = "stegano"
+                image_file = defi._DefiStegano__image_file
+                tool_used = defi._DefiStegano__tool_used
+            elif isinstance(defi, DefiCrypto):
+                category = "crypto"
+                cipher_text = defi._DefiCrypto__cipher_text
+                hints = defi._DefiCrypto__hints
+                crypto_category = defi._DefiCrypto__crypto_category
+            elif isinstance(defi, DefiWeb):
+                category = "web"
+                web_category = defi._DefiWeb__web_category
+                hints = defi._DefiWeb__hints
+                evidence_filename = defi._DefiWeb__evidence_filename
+            elif isinstance(defi, DefiReverse):
+                category = "reverse"
+                binary_filename = defi._DefiReverse__binary_filename
+                hints = defi._DefiReverse__hints
+
+            calc_type = "degressif" if isinstance(defi._Defi__calculateur_score, ScoreDegressif) else "classique"
+            
+            m = ChallengeModele(
+                id=defi.id,
+                titre=defi.titre,
+                description=defi.description,
+                points=defi.points,
+                difficulte=defi.difficulte,
+                flag_hash=defi._Defi__flag_hash,
+                category=category,
+                image_file=image_file,
+                tool_used=tool_used,
+                cipher_text=cipher_text,
+                hints=json.dumps(hints),
+                crypto_category=crypto_category,
+                web_category=web_category,
+                evidence_filename=evidence_filename,
+                lab_url=defi.lab_url,
+                binary_filename=binary_filename,
+                calculateur_type=calc_type
+            )
+            self.__challenge_repo.sauvegarder(m)
 
     def obtenir_defi(self, challenge_id: str) -> Defi:
-        return self.__defis.get(challenge_id)
+        m = self.__challenge_repo.obtenir_par_id(challenge_id)
+        if not m: return None
+        from models import UsineDefi
+        return UsineDefi.creer(m)
 
     def lister_defis(self, user_id: int) -> list:
         resultats = []
-        for defi in self.__defis.values():
+        from models import UsineDefi
+        models_list = self.__challenge_repo.obtenir_tous()
+        for m in models_list:
+            defi = UsineDefi.creer(m)
             d = defi.en_dictionnaire()
             if user_id:
                 d["resolu"] = self.__challenge_repo.a_resolu(user_id, defi.id)
@@ -247,7 +309,8 @@ class ServiceCTF:
     
     # Getter pour le nombre de défis
     def obtenir_nombre_defis(self) -> int:
-        return len(self.__defis)
+        from models import ChallengeModele
+        return ChallengeModele.query.count()
 
     def obtenir_nombre_resolus(self, user_id: int) -> int:
         return self.__challenge_repo.obtenir_nombre_resolus(user_id)

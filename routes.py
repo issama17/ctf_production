@@ -340,6 +340,138 @@ def register_routes(app, service_auth, service_ctf, user_repo, oauth):
         }
         return render_template("admin.html", utilisateurs=utilisateurs, stats=stats)
 
+    @app.route("/admin/challenges")
+    @login_required
+    def admin_challenges():
+        if current_user.obtenir_role() != "admin":
+            flash("Accès refusé. Vous devez être administrateur.", "danger")
+            return redirect(url_for("index"))
+            
+        from models import ChallengeModele
+        defis = ChallengeModele.query.all()
+        return render_template("admin_challenges.html", defis=defis)
+
+    @app.route("/admin/challenges/creer", methods=["GET", "POST"])
+    @login_required
+    def admin_challenges_creer():
+        if current_user.obtenir_role() != "admin":
+            flash("Accès refusé. Vous devez être administrateur.", "danger")
+            return redirect(url_for("index"))
+            
+        if request.method == "POST":
+            import json
+            import hashlib
+            from models import ChallengeModele
+            
+            cid = request.form.get("id", "").strip()
+            if not cid:
+                flash("L'identifiant est obligatoire.", "danger")
+                return redirect(url_for("admin_challenges_creer"))
+                
+            existing = ChallengeModele.query.get(cid)
+            if existing:
+                flash("Un défi avec cet identifiant existe déjà.", "danger")
+                return redirect(url_for("admin_challenges_creer"))
+                
+            plain_flag = request.form.get("flag", "").strip()
+            flag_hash = hashlib.sha256(plain_flag.encode()).hexdigest()
+            
+            hints_raw = request.form.get("hints", "").strip()
+            hints_list = [h.strip() for h in hints_raw.split("\n") if h.strip()]
+            
+            m = ChallengeModele(
+                id=cid,
+                titre=request.form.get("titre", "").strip(),
+                description=request.form.get("description", "").strip(),
+                points=int(request.form.get("points", 0)),
+                difficulte=request.form.get("difficulte", "Moyen"),
+                flag_hash=flag_hash,
+                category=request.form.get("category", "web"),
+                image_file=request.form.get("image_file", "").strip() or None,
+                tool_used=request.form.get("tool_used", "").strip() or None,
+                cipher_text=request.form.get("cipher_text", "").strip() or None,
+                hints=json.dumps(hints_list),
+                crypto_category=request.form.get("crypto_category", "").strip() or None,
+                web_category=request.form.get("web_category", "").strip() or None,
+                evidence_filename=request.form.get("evidence_filename", "").strip() or None,
+                lab_url=request.form.get("lab_url", "").strip() or None,
+                binary_filename=request.form.get("binary_filename", "").strip() or None,
+                calculateur_type=request.form.get("calculateur_type", "classique")
+            )
+            
+            service_ctf._ServiceCTF__challenge_repo.sauvegarder(m)
+            flash("Défi créé avec succès !", "success")
+            return redirect(url_for("admin_challenges"))
+            
+        return render_template("admin_challenge_form.html", action="creer", defi=None)
+
+    @app.route("/admin/challenges/modifier/<identifiant>", methods=["GET", "POST"])
+    @login_required
+    def admin_challenges_modifier(identifiant):
+        if current_user.obtenir_role() != "admin":
+            flash("Accès refusé. Vous devez être administrateur.", "danger")
+            return redirect(url_for("index"))
+            
+        from models import db, ChallengeModele
+        import json
+        import hashlib
+        
+        m = ChallengeModele.query.get(identifiant)
+        if not m:
+            flash("Défi introuvable.", "danger")
+            return redirect(url_for("admin_challenges"))
+            
+        if request.method == "POST":
+            m.titre = request.form.get("titre", "").strip()
+            m.description = request.form.get("description", "").strip()
+            m.points = int(request.form.get("points", 0))
+            m.difficulte = request.form.get("difficulte", "Moyen")
+            m.category = request.form.get("category", "web")
+            
+            plain_flag = request.form.get("flag", "").strip()
+            if plain_flag:
+                m.flag_hash = hashlib.sha256(plain_flag.encode()).hexdigest()
+                
+            hints_raw = request.form.get("hints", "").strip()
+            hints_list = [h.strip() for h in hints_raw.split("\n") if h.strip()]
+            m.hints = json.dumps(hints_list)
+            
+            m.image_file = request.form.get("image_file", "").strip() or None
+            m.tool_used = request.form.get("tool_used", "").strip() or None
+            m.cipher_text = request.form.get("cipher_text", "").strip() or None
+            m.crypto_category = request.form.get("crypto_category", "").strip() or None
+            m.web_category = request.form.get("web_category", "").strip() or None
+            m.evidence_filename = request.form.get("evidence_filename", "").strip() or None
+            m.lab_url = request.form.get("lab_url", "").strip() or None
+            m.binary_filename = request.form.get("binary_filename", "").strip() or None
+            m.calculateur_type = request.form.get("calculateur_type", "classique")
+            
+            db.session.commit()
+            flash("Défi mis à jour avec succès !", "success")
+            return redirect(url_for("admin_challenges"))
+            
+        try:
+            hints_list = json.loads(m.hints) if m.hints else []
+            hints_str = "\n".join(hints_list)
+        except Exception:
+            hints_str = ""
+            
+        return render_template("admin_challenge_form.html", action="modifier", defi=m, hints_str=hints_str)
+
+    @app.route("/admin/challenges/supprimer/<identifiant>", methods=["POST"])
+    @login_required
+    def admin_challenges_supprimer(identifiant):
+        if current_user.obtenir_role() != "admin":
+            flash("Accès refusé. Vous devez être administrateur.", "danger")
+            return redirect(url_for("index"))
+            
+        success = service_ctf._ServiceCTF__challenge_repo.supprimer(identifiant)
+        if success:
+            flash("Défi supprimé avec succès !", "success")
+        else:
+            flash("Impossible de supprimer le défi.", "danger")
+        return redirect(url_for("admin_challenges"))
+
     @app.route("/lab/sqli/login", methods=["GET", "POST"])
     def lab_sqli_login():
         if request.method == "POST":

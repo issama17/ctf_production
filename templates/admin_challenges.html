@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block titre %}CTF_LAB — Administration des Défis{% endblock %}
+
+{% block contenu %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+  <div>
+    <p class="font-mono text-dim mb-0" style="font-size:.75rem;">// PANNEAU DE CONTRÔLE</p>
+    <h1 class="font-mono text-cyan mb-0" style="font-size:1.6rem;"><i class="bi bi-shield-lock me-2"></i>Administration des Défis</h1>
+  </div>
+  <div class="d-flex gap-2 font-mono">
+    <a href="/admin" class="btn-ctf text-yellow" style="text-decoration: none;"><i class="bi bi-people-fill me-2"></i>Joueurs</a>
+    <a href="/admin/challenges" class="btn-ctf text-cyan" style="border-color: var(--cyan); background: rgba(0, 176, 255, 0.08); text-decoration: none;"><i class="bi bi-flag-fill me-2"></i>Défis</a>
+  </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h5 class="text-green mb-0 font-mono"><i class="bi bi-list-task me-2"></i>Liste des Défis</h5>
+  <a href="{{ url_for('admin_challenges_creer') }}" class="btn-ctf text-green font-mono" style="border-color: var(--green); text-decoration: none;">
+    <i class="bi bi-plus-circle-fill me-2"></i>Créer un Défi
+  </a>
+</div>
+
+<div class="ctf-card p-4">
+  <div class="table-responsive">
+    <table class="table table-dark table-hover font-mono align-middle" style="font-size:.85rem;">
+      <thead>
+        <tr class="text-dim">
+          <th>ID</th>
+          <th>Titre</th>
+          <th>Catégorie</th>
+          <th>Difficulté</th>
+          <th>Points</th>
+          <th style="width: 200px;" class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in defis %}
+        <tr>
+          <td class="text-cyan">{{ d.id }}</td>
+          <td>{{ d.titre }}</td>
+          <td>
+            <span class="badge bg-secondary text-uppercase">{{ d.category }}</span>
+          </td>
+          <td>
+            <span class="badge-diff diff-{{ d.difficulte.lower() }}">{{ d.difficulte }}</span>
+          </td>
+          <td class="text-green fw-bold">{{ d.points }} pts</td>
+          <td class="text-end">
+            <div class="d-flex gap-2 justify-content-end">
+              <a href="{{ url_for('admin_challenges_modifier', identifiant=d.id) }}" class="btn btn-sm btn-outline-info font-mono" style="font-size: .75rem;">
+                <i class="bi bi-pencil-fill"></i> Modifier
+              </a>
+              <form action="{{ url_for('admin_challenges_supprimer', identifiant=d.id) }}" method="POST" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce défi ?');" style="display: inline;">
+                <button type="submit" class="btn btn-sm btn-outline-danger font-mono" style="font-size: .75rem;">
+                  <i class="bi bi-trash-fill"></i> Supprimer
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="text-center text-dim py-4">Aucun défi configuré dans la base de données.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

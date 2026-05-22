@@ -44,6 +44,7 @@ class ApplicationCTF:
         """Applique les migrations et crée les tables dans le contexte Flask."""
         with self.__app.app_context():
             db.create_all()
+            self.__initialiser_defis()
             # Patch automatique pour Railway (PostgreSQL / SQLite)
             try:
                 from sqlalchemy import text
@@ -96,6 +97,16 @@ class ApplicationCTF:
             database_url = database_url.replace("postgres://", "postgresql://", 1)
         self.__app.config["SQLALCHEMY_DATABASE_URI"] = database_url
         self.__app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+        
+        # Options d'optimisation du pool de connexion pour PostgreSQL en serverless
+        if "postgresql" in database_url:
+            self.__app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+                "pool_size": 5,
+                "max_overflow": 10,
+                "pool_timeout": 30,
+                "pool_recycle": 280,
+                "pool_pre_ping": True,
+            }
 
     def __init_db(self):
         db.init_app(self.__app)
@@ -112,8 +123,6 @@ class ApplicationCTF:
         # Observer Pattern
         self.__service_ctf.attacher_observateur(AuditLogObservateur())
         self.__service_ctf.attacher_observateur(BadgeObservateur())
-
-        self.__initialiser_defis()
 
     def __init_auth(self):
         self.__lm = LoginManager()

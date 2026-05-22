@@ -73,6 +73,29 @@ class AttemptModele(db.Model):
     challenge_id = db.Column(db.String(64), nullable=False)
     attempts_count = db.Column(db.Integer, default=0)
 
+class ChallengeModele(db.Model):
+    __tablename__ = "challenges"
+    id = db.Column(db.String(64), primary_key=True)
+    titre = db.Column(db.String(128), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    points = db.Column(db.Integer, nullable=False)
+    difficulte = db.Column(db.String(32), nullable=False)
+    flag_hash = db.Column(db.String(256), nullable=False)
+    category = db.Column(db.String(32), nullable=False)  # 'stegano', 'crypto', 'web', 'reverse'
+    
+    # Category-specific fields
+    image_file = db.Column(db.String(255), nullable=True)
+    tool_used = db.Column(db.String(64), nullable=True)
+    cipher_text = db.Column(db.Text, nullable=True)
+    hints = db.Column(db.Text, nullable=True)  # Store JSON-serialized list of hints
+    crypto_category = db.Column(db.String(128), nullable=True)
+    web_category = db.Column(db.String(128), nullable=True)
+    evidence_filename = db.Column(db.String(255), nullable=True)
+    lab_url = db.Column(db.String(255), nullable=True)
+    binary_filename = db.Column(db.String(255), nullable=True)
+    calculateur_type = db.Column(db.String(32), default="classique")  # 'classique' or 'degressif'
+
+
 # ══════════════════════════════════════════════════════
 #  MODÈLES DE DOMAINE (Logique Métier & Encapsulation)
 # ══════════════════════════════════════════════════════
@@ -153,6 +176,47 @@ class UsineUtilisateur:
     def creer(user_modele: UserModele) -> Utilisateur:
         if user_modele.role == "admin": return Administrateur(user_modele)
         return Participant(user_modele)
+
+class UsineDefi:
+    @staticmethod
+    def creer(m: ChallengeModele) -> Defi:
+        import json
+        calc = ScoreDegressif() if m.calculateur_type == "degressif" else ScoreClassique()
+        
+        try:
+            hints = json.loads(m.hints) if m.hints else []
+        except Exception:
+            hints = []
+            
+        if m.category == "stegano":
+            return DefiStegano(
+                identifiant=m.id, titre=m.titre, description=m.description,
+                points=m.points, difficulte=m.difficulte, flag_hash=m.flag_hash,
+                image_file=m.image_file, tool_used=m.tool_used, calculateur_score=calc
+            )
+        elif m.category == "crypto":
+            return DefiCrypto(
+                identifiant=m.id, titre=m.titre, description=m.description,
+                points=m.points, difficulte=m.difficulte, flag_hash=m.flag_hash,
+                cipher_text=m.cipher_text, hints=hints, crypto_category=m.crypto_category,
+                calculateur_score=calc
+            )
+        elif m.category == "web":
+            return DefiWeb(
+                identifiant=m.id, titre=m.titre, description=m.description,
+                points=m.points, difficulte=m.difficulte, flag_hash=m.flag_hash,
+                web_category=m.web_category, hints=hints, evidence_filename=m.evidence_filename,
+                calculateur_score=calc, lab_url=m.lab_url
+            )
+        elif m.category == "reverse":
+            return DefiReverse(
+                identifiant=m.id, titre=m.titre, description=m.description,
+                points=m.points, difficulte=m.difficulte, flag_hash=m.flag_hash,
+                binary_filename=m.binary_filename, hints=hints, calculateur_score=calc
+            )
+        else:
+            raise ValueError(f"Catégorie de défi inconnue: {m.category}")
+
 
 class Defi(ABC):
     def __init__(self, identifiant, titre, description, points, difficulte, flag_hash, calculateur_score=None, lab_url=None):

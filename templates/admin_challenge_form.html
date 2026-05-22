@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block titre %}CTF_LAB — {{ "Modifier le défi" if action == "modifier" else "Créer un défi" }}{% endblock %}
+
+{% block contenu %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+  <div>
+    <p class="font-mono text-dim mb-0" style="font-size:.75rem;">// PANNEAU DE CONTRÔLE</p>
+    <h1 class="font-mono text-cyan mb-0" style="font-size:1.6rem;">
+      <i class="bi bi-gear-fill me-2"></i>{{ "Modifier le défi " ~ defi.id if action == "modifier" else "Créer un défi" }}
+    </h1>
+  </div>
+  <div class="font-mono">
+    <a href="{{ url_for('admin_challenges') }}" class="btn-ctf text-dim" style="text-decoration: none;"><i class="bi bi-arrow-left me-2"></i>Retour aux défis</a>
+  </div>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="ctf-card p-4">
+      <form method="POST" class="font-mono">
+        
+        <!-- Common Info -->
+        <h5 class="text-green border-bottom border-secondary pb-2 mb-4"><i class="bi bi-info-circle me-2"></i>Informations Communes</h5>
+        
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <label for="id" class="ctf-label">Identifiant (Unique)</label>
+            <input type="text" id="id" name="id" class="ctf-input" required placeholder="ex: web_ssrf_01" 
+                   value="{{ defi.id if defi else '' }}" {{ 'readonly' if action == 'modifier' else '' }}>
+            <small class="text-dim" style="font-size: .7rem;">L'identifiant est la clé primaire et ne peut pas être modifié par la suite.</small>
+          </div>
+          <div class="col-md-6">
+            <label for="titre" class="ctf-label">Titre du Défi</label>
+            <input type="text" id="titre" name="titre" class="ctf-input" required placeholder="ex: SSRF dans le nuage" 
+                   value="{{ defi.titre if defi else '' }}">
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label for="description" class="ctf-label">Description (HTML supporté)</label>
+          <textarea id="description" name="description" rows="5" class="ctf-input" required placeholder="Décrivez le défi..." style="resize: vertical;">{{ defi.description if defi else '' }}</textarea>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <label for="points" class="ctf-label">Points</label>
+            <input type="number" id="points" name="points" class="ctf-input" required placeholder="100" min="0" 
+                   value="{{ defi.points if defi else 100 }}">
+          </div>
+          <div class="col-md-4">
+            <label for="difficulte" class="ctf-label">Difficulté</label>
+            <select id="difficulte" name="difficulte" class="ctf-input">
+              <option value="Facile" {{ 'selected' if defi and defi.difficulte == 'Facile' else '' }}>Facile</option>
+              <option value="Moyen" {{ 'selected' if not defi or defi.difficulte == 'Moyen' else '' }}>Moyen</option>
+              <option value="Difficile" {{ 'selected' if defi and defi.difficulte == 'Difficile' else '' }}>Difficile</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label for="calculateur_type" class="ctf-label">Type de Score</label>
+            <select id="calculateur_type" name="calculateur_type" class="ctf-input">
+              <option value="classique" {{ 'selected' if not defi or defi.calculateur_type == 'classique' else '' }}>Classique (Fixe)</option>
+              <option value="degressif" {{ 'selected' if defi and defi.calculateur_type == 'degressif' else '' }}>Dégressif (-10% par erreur, min 50%)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <label for="flag" class="ctf-label">{{ "Flag (Laisser vide pour ne pas modifier)" if action == "modifier" else "Flag (Format CTF{...})" }}</label>
+            <input type="text" id="flag" name="flag" class="ctf-input" {{ 'required' if action == 'creer' else '' }} placeholder="ex: CTF{s3cur3_fl4g_123}">
+            {% if action == 'modifier' %}
+              <small class="text-dim" style="font-size: .7rem;">Hash actuel: <code>{{ defi.flag_hash }}</code></small>
+            {% endif %}
+          </div>
+          <div class="col-md-6">
+            <label for="category" class="ctf-label">Catégorie</label>
+            <select id="category" name="category" class="ctf-input">
+              <option value="stegano" {{ 'selected' if defi and defi.category == 'stegano' else '' }}>Stéganographie (stegano)</option>
+              <option value="crypto" {{ 'selected' if defi and defi.category == 'crypto' else '' }}>Cryptographie (crypto)</option>
+              <option value="web" {{ 'selected' if not defi or defi.category == 'web' else '' }}>Web (web)</option>
+              <option value="reverse" {{ 'selected' if defi and defi.category == 'reverse' else '' }}>Reverse Engineering (reverse)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label for="hints" class="ctf-label">Indices (Un indice par ligne)</label>
+          <textarea id="hints" name="hints" rows="3" class="ctf-input" placeholder="Premier indice&#10;Deuxième indice&#10;Troisième indice..." style="resize: vertical;">{{ hints_str if hints_str else '' }}</textarea>
+          <small class="text-dim" style="font-size: .7rem;">Les indices sont dévoilés automatiquement à l'utilisateur toutes les 3 tentatives incorrectes.</small>
+        </div>
+
+        <!-- Stegano Specific -->
+        <div id="sec-stegano" class="category-section mb-4" style="display: none;">
+          <h5 class="text-pink border-bottom border-secondary pb-2 mb-4"><i class="bi bi-image me-2"></i>Détails Stéganographie</h5>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="image_file" class="ctf-label">Fichier Image (dans static/images/)</label>
+              <input type="text" id="image_file" name="image_file" class="ctf-input" placeholder="ex: image_piege.jpg" value="{{ defi.image_file if defi and defi.image_file else '' }}">
+            </div>
+            <div class="col-md-6">
+              <label for="tool_used" class="ctf-label">Outil Recommandé</label>
+              <input type="text" id="tool_used" name="tool_used" class="ctf-input" placeholder="ex: steghide" value="{{ defi.tool_used if defi and defi.tool_used else '' }}">
+            </div>
+          </div>
+        </div>
+
+        <!-- Crypto Specific -->
+        <div id="sec-crypto" class="category-section mb-4" style="display: none;">
+          <h5 class="text-pink border-bottom border-secondary pb-2 mb-4"><i class="bi bi-key-fill me-2"></i>Détails Cryptographie</h5>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="crypto_category" class="ctf-label">Sous-Catégorie de Crypto</label>
+              <input type="text" id="crypto_category" name="crypto_category" class="ctf-input" placeholder="ex: César, RSA, XOR..." value="{{ defi.crypto_category if defi and defi.crypto_category else '' }}">
+            </div>
+            <div class="col-md-6">
+              <label for="cipher_text" class="ctf-label">Texte Chiffré / Paramètres</label>
+              <textarea id="cipher_text" name="cipher_text" rows="2" class="ctf-input" placeholder="ex: PGS{prfne_qrpbqr}" style="resize: vertical;">{{ defi.cipher_text if defi and defi.cipher_text else '' }}</textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Web Specific -->
+        <div id="sec-web" class="category-section mb-4" style="display: none;">
+          <h5 class="text-pink border-bottom border-secondary pb-2 mb-4"><i class="bi bi-globe me-2"></i>Détails Web</h5>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label for="web_category" class="ctf-label">Sous-Catégorie Web</label>
+              <input type="text" id="web_category" name="web_category" class="ctf-input" placeholder="ex: SQLi, XSS, JWT..." value="{{ defi.web_category if defi and defi.web_category else '' }}">
+            </div>
+            <div class="col-md-6">
+              <label for="evidence_filename" class="ctf-label">Archive de Preuves (dans static/evidence/)</label>
+              <input type="text" id="evidence_filename" name="evidence_filename" class="ctf-input" placeholder="ex: nullsig_evidence_pack.zip" value="{{ defi.evidence_filename if defi and defi.evidence_filename else '' }}">
+            </div>
+          </div>
+          <div>
+            <label for="lab_url" class="ctf-label">URL du Labo Interactif (Optionnel)</label>
+            <input type="text" id="lab_url" name="lab_url" class="ctf-input" placeholder="ex: /lab/sqli/login" value="{{ defi.lab_url if defi and defi.lab_url else '' }}">
+          </div>
+        </div>
+
+        <!-- Reverse Specific -->
+        <div id="sec-reverse" class="category-section mb-4" style="display: none;">
+          <h5 class="text-pink border-bottom border-secondary pb-2 mb-4"><i class="bi bi-braces me-2"></i>Détails Reverse Engineering</h5>
+          <div>
+            <label for="binary_filename" class="ctf-label">Nom du Binaire (dans static/evidence/)</label>
+            <input type="text" id="binary_filename" name="binary_filename" class="ctf-input" placeholder="ex: chall" value="{{ defi.binary_filename if defi and defi.binary_filename else '' }}">
+          </div>
+        </div>
+
+        <hr class="border-secondary my-4">
+
+        <button type="submit" class="btn-ctf-full font-mono py-3">
+          <i class="bi bi-save-fill me-2"></i>{{ "Enregistrer les modifications" if action == "modifier" else "Créer le défi" }}
+        </button>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const categorySelect = document.getElementById("category");
+    const sections = {
+        stegano: document.getElementById("sec-stegano"),
+        crypto: document.getElementById("sec-crypto"),
+        web: document.getElementById("sec-web"),
+        reverse: document.getElementById("sec-reverse")
+    };
+    
+    function updateSections() {
+        const selected = categorySelect.value;
+        for (const [cat, el] of Object.entries(sections)) {
+            if (cat === selected) {
+                el.style.display = "block";
+            } else {
+                el.style.display = "none";
+            }
+        }
+    }
+    
+    categorySelect.addEventListener("change", updateSections);
+    updateSections(); // Run initially
+});
+</script>
+{% endblock %}

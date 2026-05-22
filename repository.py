@@ -2,7 +2,7 @@
 Couche d'Accès aux Données (Repositories)
 Abstrait les requêtes de base de données.
 """
-from models import db, UserModele, SubmissionModele, AttemptModele
+from models import db, UserModele, SubmissionModele, AttemptModele, ChallengeModele
 from typing import Optional, List
 
 class UtilisateurRepository:
@@ -94,3 +94,22 @@ class DefiRepository:
 
     def obtenir_nombre_resolus(self, uid: int) -> int:
         return SubmissionModele.query.filter_by(user_id=uid, success=True).count()
+
+    def obtenir_tous(self) -> List[ChallengeModele]:
+        return ChallengeModele.query.all()
+
+    def obtenir_par_id(self, cid: str) -> Optional[ChallengeModele]:
+        return db.session.get(ChallengeModele, cid)
+
+    def sauvegarder(self, m: ChallengeModele) -> None:
+        db.session.add(m)
+        db.session.commit()
+
+    def supprimer(self, cid: str) -> bool:
+        m = self.obtenir_par_id(cid)
+        if m:
+            db.session.delete(m)
+            db.session.commit()
+            return True
+        return False
+
