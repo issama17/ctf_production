@@ -187,7 +187,7 @@ class ApplicationCTF:
         ))
 
         # 3. Crypto 2 (XOR)
-        xor_hex = "".join(f"{b ^ 0x42:02x}" for b in base64.b64encode(b"CTF{x0r_and_b4se64_master}"))
+        xor_hex = "1373100527712535212e7b2a202f10241b28103818161b721a70732a2171102e212c727f"
         s.enregistrer_defi(DefiCrypto(
             identifiant="crypto_02", titre="Double Masque",
             description=(
