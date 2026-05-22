@@ -199,13 +199,52 @@ def register_routes(app, service_auth, service_ctf, user_repo, oauth):
             
         if request.method == "POST":
             email = request.form.get("email", "").strip().lower()
-            new_password = request.form.get("new_password", "")
-            res = service_auth.reinitialiser_mot_de_passe(email, new_password)
-            flash(res["message"], "success" if res["succes"] else "danger")
-            if res["succes"]:
-                return redirect(url_for("login"))
+            user = user_repo.obtenir_par_email(email)
+            if user:
+                from itsdangerous import URLSafeTimedSerializer
+                serializer = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
+                token = serializer.dumps(email, salt="password-reset-salt")
+                reset_url = url_for("reinitialiser_mot_de_passe", token=token, _external=True)
+                logging.getLogger("security").warning(
+                    f"\n[SECURITY] Password reset link for {email}:\n{reset_url}\n"
+                )
+            
+            flash(
+                "Si l'adresse email existe, une demande de réinitialisation a été enregistrée. "
+                "Veuillez contacter l'administrateur pour obtenir votre lien (disponible dans les logs de l'application).", 
+                "info"
+            )
+            return redirect(url_for("login"))
                 
         return render_template("mot_de_passe_oublie.html")
+
+    @app.route("/reinitialiser/<token>", methods=["GET", "POST"])
+    def reinitialiser_mot_de_passe(token):
+        if current_user.is_authenticated:
+            return redirect(url_for("index"))
+            
+        from itsdangerous import URLSafeTimedSerializer
+        serializer = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
+        try:
+            email = serializer.loads(token, salt="password-reset-salt", max_age=3600)  # Expire après 1 heure
+        except Exception:
+            flash("Le lien de réinitialisation est invalide ou a expiré.", "danger")
+            return redirect(url_for("login"))
+            
+        if request.method == "POST":
+            new_password = request.form.get("new_password", "")
+            if len(new_password) < 6:
+                flash("Le mot de passe doit faire au moins 6 caractères.", "danger")
+                return render_template("reinitialiser_mot_de_passe.html", token=token)
+                
+            res = service_auth.reinitialiser_mot_de_passe(email, new_password)
+            if res["succes"]:
+                flash("Votre mot de passe a été mis à jour avec succès !", "success")
+                return redirect(url_for("login"))
+            else:
+                flash(res["message"], "danger")
+                
+        return render_template("reinitialiser_mot_de_passe.html", token=token)
 
     from models import FabriqueStatut
     @app.route("/scoreboard")

@@ -128,11 +128,16 @@ class Utilisateur(UserMixin, ABC):
     def get_id(self): return str(self.__id)
 
     def verifier_mot_de_passe(self, password: str) -> bool:
-        return hashlib.sha256(password.encode()).hexdigest() == self.__password_hash
+        from werkzeug.security import check_password_hash
+        h = self.__password_hash
+        if h.startswith("pbkdf2:") or h.startswith("scrypt:") or h.startswith("bcrypt:"):
+            return check_password_hash(h, password)
+        return hashlib.sha256(password.encode()).hexdigest() == h
 
     @staticmethod
     def hacher_mot_de_passe(password: str) -> str:
-        return hashlib.sha256(password.encode()).hexdigest()
+        from werkzeug.security import generate_password_hash
+        return generate_password_hash(password)
 
     @abstractmethod
     def obtenir_role(self) -> str: pass

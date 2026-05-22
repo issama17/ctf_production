@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block titre %}CTF_LAB — Mot de passe oublié{% endblock %}
+{% block titre %}CTF_LAB — Nouveau mot de passe{% endblock %}
 {% block styles %}
 .auth-card{max-width:440px;margin:0 auto;}
 .auth-title{font-family:var(--mono);font-size:1.8rem;color:var(--yellow);}
@@ -16,22 +16,22 @@
 <div class="auth-card">
   <div class="text-center mb-4">
     <p class="font-mono text-dim mb-1" style="font-size:.8rem;">
-      <span class="text-yellow">$</span> ./reset_password
+      <span class="text-yellow">$</span> ./set_new_password
     </p>
     <h1 class="auth-title glow-yellow mb-3">Réinitialisation</h1>
-    <p class="text-dim" style="font-size:.9rem;">Entrez votre adresse email pour recevoir un lien de réinitialisation</p>
+    <p class="text-dim" style="font-size:.9rem;">Créez votre nouveau mot de passe</p>
   </div>
 
   <div class="ctf-card p-4">
-    <form method="POST" action="/mot_de_passe_oublie">
+    <form method="POST" action="{{ url_for('reinitialiser_mot_de_passe', token=token) }}">
       <div class="mb-4">
-        <label class="ctf-label"><i class="bi bi-envelope me-1"></i>ADRESSE EMAIL</label>
-        <input type="email" name="email" class="ctf-input"
-               placeholder="votre@email.com" required autofocus/>
+        <label class="ctf-label"><i class="bi bi-lock me-1"></i>NOUVEAU MOT DE PASSE</label>
+        <input type="password" name="new_password" class="ctf-input"
+               placeholder="••••••••" required autofocus/>
       </div>
 
       <button type="submit" class="btn-ctf-full" style="background:var(--yellow); color:#000;">
-        <i class="bi bi-send me-2"></i>Demander la réinitialisation
+        <i class="bi bi-arrow-clockwise me-2"></i>Mettre à jour le mot de passe
       </button>
     </form>
 
