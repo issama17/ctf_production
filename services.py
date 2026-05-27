@@ -5,6 +5,8 @@ Implémente le Design Pattern Observer pour les notifications et les logs.
 import os
 import logging
 import smtplib
+import urllib.request
+import json
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from abc import ABC, abstractmethod
@@ -134,19 +136,26 @@ class ServiceAuth:
         msg.attach(MIMEText(html_content, "html"))
         
         try:
-            if port_smtp == 465:
-                with smtplib.SMTP_SSL(serveur_smtp, port_smtp) as server:
-                    server.login(utilisateur_smtp, mot_de_passe_smtp)
-                    server.sendmail(expediteur, email, msg.as_string())
-            else:
-                with smtplib.SMTP(serveur_smtp, port_smtp) as server:
-                    server.starttls()
-                    server.login(utilisateur_smtp, mot_de_passe_smtp)
-                    server.sendmail(expediteur, email, msg.as_string())
-            self.__logger.info(f"E-mail de réinitialisation envoyé avec succès à {email}.")
+            resend_key = os.getenv("SMTP_PASSWORD")
+            payload = json.dumps({
+                "sender": {"email": expediteur},
+                "to": [{"email": email}],
+                "subject": sujet,
+                "htmlContent": html_content
+            }).encode("utf-8")
+            req = urllib.request.Request(
+                "https://api.brevo.com/v3/smtp/email",
+                data=payload,
+                headers={
+                    "api-key": resend_key,
+                    "Content-Type": "application/json"
+                }
+            )
+            urllib.request.urlopen(req, timeout=10)
+            self.__logger.info(f"E-mail envoye via Brevo a {email}.")
             return True
         except Exception as e:
-            self.__logger.error(f"Erreur d'envoi d'e-mail SMTP à {email}: {e}")
+            self.__logger.error(f"Erreur Brevo a {email}: {e}")
             return False
 
 # ══════════════════════════════════════════════════════
