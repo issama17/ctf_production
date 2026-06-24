@@ -58,8 +58,12 @@ class ApplicationCTF:
                 self.__db_initialized = True
                 return
         except Exception:
-            # En cas d'erreur (ex: table inexistante), on procède à l'initialisation
-            pass
+            # En cas d'erreur (ex: table inexistante), on doit impérativement faire un rollback
+            # car PostgreSQL invalide toute la transaction courante en cas d'erreur de requête.
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
 
         logging.getLogger("db_init").info("Initialisation de la base de données (Paresseuse/Lazy)...")
         with self.__app.app_context():
