@@ -31,22 +31,43 @@ class ApplicationCTF:
     """Classe principale représentant l'application (Patron Façade / Composition)."""
     def __init__(self):
         self.__app = Flask(__name__, template_folder='templates', static_folder='static')
-        # Fix pour Railway (HTTPS derrière un proxy)
+        # Fix pour Railway/Vercel (HTTPS derrière un proxy)
         self.__app.wsgi_app = ProxyFix(self.__app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+        self.__db_initialized = False
         
         self.__configurer_app()
         self.__init_db()
         self.__init_services()
         self.__init_auth()
-        self.__appliquer_migrations()
+        self.__setup_lazy_db_init()
+
+    def __setup_lazy_db_init(self):
+        """Configure l'initialisation paresseuse de la base de données."""
+        @self.__app.before_request
+        def initialiser_base_si_necessaire():
+            if not self.__db_initialized:
+                self.__appliquer_migrations()
 
     def __appliquer_migrations(self):
-        """Applique les migrations et crée les tables dans le contexte Flask."""
+        """Applique les migrations et crée les tables dans le contexte Flask (Paresseux)."""
+        # 1. Tenter de détecter rapidement si la base est déjà initialisée (évite les écritures et locks au démarrage)
+        try:
+            from models import ChallengeModele
+            # Si cette requête passe et qu'on a déjà des défis en base, on considère que c'est déjà initialisé.
+            if db.session.query(ChallengeModele).first() is not None:
+                self.__db_initialized = True
+                return
+        except Exception:
+            # En cas d'erreur (ex: table inexistante), on procède à l'initialisation
+            pass
+
+        logging.getLogger("db_init").info("Initialisation de la base de données (Paresseuse/Lazy)...")
         with self.__app.app_context():
-            db.create_all()
-            self.__initialiser_defis()
-            # Patch automatique pour Railway (PostgreSQL / SQLite)
             try:
+                db.create_all()
+                self.__initialiser_defis()
+                
+                # Patch de schéma de base de données si nécessaire
                 from sqlalchemy import text
                 # 1. Renommer 'filiere' en 'statut' s'il existe
                 try:
@@ -68,8 +89,11 @@ class ApplicationCTF:
                         conn.execute(text("ALTER TABLE users ADD COLUMN experience VARCHAR(32) DEFAULT 'Débutant'"))
                         conn.commit()
                 except Exception: pass
+                
+                self.__db_initialized = True
+                logging.getLogger("db_init").info("Base de données initialisée et migrations appliquées avec succès.")
             except Exception as e:
-                logging.getLogger("db_patch").error(f"Erreur migration: {e}")
+                logging.getLogger("db_init").error(f"Erreur d'initialisation de la base de données : {e}")
 
     @property
     def app(self):
@@ -92,9 +116,30 @@ class ApplicationCTF:
             
         self.__app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
         
-        database_url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL") or os.getenv("STORAGE_URL") or "sqlite:///ctf_platform.db"
+        database_url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL") or os.getenv("STORAGE_URL")
+        
+        # Fallback pour SQLite en gérant le système de fichiers en lecture seule de Vercel
+        if not database_url:
+            if os.getenv("VERCEL") == "1":
+                database_url = "sqlite:////tmp/ctf_platform.db"
+            else:
+                database_url = "sqlite:///ctf_platform.db"
+        elif database_url.startswith("sqlite:///"):
+            # Si l'utilisateur a spécifié une SQLite locale relative mais qu'on est sur Vercel
+            if os.getenv("VERCEL") == "1" and not database_url.startswith("sqlite:////tmp/"):
+                database_url = "sqlite:////tmp/ctf_platform.db"
+
         if database_url.startswith("postgres://"):
             database_url = database_url.replace("postgres://", "postgresql://", 1)
+            
+        # Support automatique pour pg8000 si disponible (recommandé pour Vercel / serverless pour éviter C-extensions)
+        if "postgresql" in database_url and not database_url.startswith("postgresql+"):
+            try:
+                import pg8000
+                database_url = database_url.replace("postgresql://", "postgresql+pg8000://", 1)
+            except ImportError:
+                pass
+
         self.__app.config["SQLALCHEMY_DATABASE_URI"] = database_url
         self.__app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
         
