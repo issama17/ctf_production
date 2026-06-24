@@ -9,18 +9,6 @@
   ],
   "routes": [
     {
-      "src": "/favicon.ico",
-      "dest": "/static/favicon.png"
-    },
-    {
-      "src": "/favicon.png",
-      "dest": "/static/favicon.png"
-    },
-    {
-      "src": "/static/(.*)",
-      "dest": "/static/$1"
-    },
-    {
       "src": "/(.*)",
       "dest": "wsgi.py"
     }
