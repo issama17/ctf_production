@@ -137,6 +137,10 @@ class ApplicationCTF:
             try:
                 import pg8000
                 database_url = database_url.replace("postgresql://", "postgresql+pg8000://", 1)
+                # pg8000 ne supporte pas certains paramètres de requête de Neon (channel_binding, sslmode, etc.) dans l'URI
+                # On les retire car pg8000 gère le SSL nativement et automatiquement avec Neon
+                if "?" in database_url:
+                    database_url = database_url.split("?", 1)[0]
             except ImportError:
                 pass
 

@@ -33,3 +33,6 @@ desktop.ini
 setup.py
 inject.py
 scratch/
+
+# Fichiers de sauvegarde locaux / sensibles (contient des credentials de production)
+Ctf deployement backup/
