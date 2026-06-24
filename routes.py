@@ -21,6 +21,11 @@ def register_routes(app, service_auth, service_ctf, user_repo, oauth):
     def fichier_autorise(filename: str) -> bool:
         return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
+    @app.route("/favicon.ico")
+    @app.route("/favicon.png")
+    def serve_favicon():
+        return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.png', mimetype='image/png')
+
     @app.route("/")
     def index():
         uid = current_user.id if current_user.is_authenticated else None
