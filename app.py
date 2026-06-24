@@ -180,14 +180,20 @@ class ApplicationCTF:
             return self.__service_auth.charger_utilisateur(int(uid))
 
         # Configuration OAuth
-        self.__oauth = OAuth(self.__app)
-        self.__oauth.register(
-            name='google',
-            client_id=os.getenv("GOOGLE_CLIENT_ID"),
-            client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
-            server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-            client_kwargs={'scope': 'openid email profile'}
-        )
+        google_id = os.getenv("GOOGLE_CLIENT_ID")
+        google_secret = os.getenv("GOOGLE_CLIENT_SECRET")
+        if google_id and google_secret:
+            self.__oauth = OAuth(self.__app)
+            self.__oauth.register(
+                name='google',
+                client_id=google_id,
+                client_secret=google_secret,
+                server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+                client_kwargs={'scope': 'openid email profile'}
+            )
+        else:
+            self.__oauth = None
+            logging.getLogger("oauth").warning("GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET not configured. Google OAuth disabled.")
 
         register_routes(self.__app, self.__service_auth, self.__service_ctf, self.__user_repo, self.__oauth)
 

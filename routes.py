@@ -86,6 +86,10 @@ def register_routes(app, service_auth, service_ctf, user_repo, oauth):
 
     @app.route("/login/google")
     def login_google():
+        if not oauth:
+            flash("L'authentification Google OAuth n'est pas configurée ou est désactivée.", "danger")
+            return redirect(url_for("login"))
+            
         # Capturer les options choisies par l'utilisateur (Statut et Expérience)
         session['google_statut'] = request.args.get('statut', 'Étudiant')
         session['google_experience'] = request.args.get('experience', 'Débutant')
@@ -105,6 +109,10 @@ def register_routes(app, service_auth, service_ctf, user_repo, oauth):
 
     @app.route("/google/auth")
     def google_auth():
+        if not oauth:
+            flash("L'authentification Google OAuth n'est pas configurée ou est désactivée.", "danger")
+            return redirect(url_for("login"))
+            
         try:
             token = oauth.google.authorize_access_token()
             user_info = oauth.google.get('https://www.googleapis.com/oauth2/v3/userinfo').json()
